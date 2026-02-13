@@ -190,7 +190,7 @@ Remaining Week 2 Tasks:
 - [ ] End-to-end composite score calculation
 - [ ] Market-wide sentiment data collection (future enhancement)
 
-**Git Commit:** _[Will be added after commit]_ - "feat: Sentiment calculator implementation and validation"
+**Git Commit:** `6d60aa2` - "feat: Sentiment calculator implementation and validation"
 
 ---
 
