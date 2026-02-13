@@ -519,41 +519,58 @@ A feature is "done" when:
 
 **MANDATORY before ending any work session:**
 
-- [ ] **Update `docs/SESSION_STATUS.md`**
-  - Mark completed tasks as ✅
-  - Update "Completed This Session" section
-  - Define "Next Session Goals"
-  - Document any blockers or decisions
+- [ ] **Update `docs/SESSION_HISTORY.md`** (FIRST - detailed archive)
+  - Add new session entry with date and phase/task description
+  - List all completed tasks in detail
+  - Document all files created/modified
+  - Record technical decisions with rationale
+  - Note issues resolved and solutions
+  - Include git commit hash and message
+
+- [ ] **Update `docs/SESSION_STATUS.md`** (SECOND - current state)
+  - Update "Completed Infrastructure" checklist (mark ✅)
+  - Update "Next Session Goals" with new tasks
+  - Keep it lean - detailed notes go in SESSION_HISTORY.md
+  - Remove completed items from task list
 
 - [ ] **Commit all changes**
-  - Stage all modified files
+  - Stage all modified files (including BOTH session docs)
   - Write clear commit message
   - Reference framework sections if applicable
+  - Include Co-Authored-By line
 
 - [ ] **Push to GitHub**
   - Verify all commits pushed
   - Check GitHub for successful push
 
-- [ ] **Update environment notes**
-  - Document any new dependencies added
-  - Note any configuration changes
-  - Record any issues encountered
+**Templates:**
 
-**SESSION_STATUS.md Template:**
+**SESSION_HISTORY.md Entry:**
 ```markdown
-## Completed This Session (YYYY-MM-DD)
-- [x] Task completed
-- [x] Another task completed
+## Session YYYY-MM-DD: [Phase/Task Description] ✅
 
-## Blockers/Decisions
-- [Issue or decision made]
+**Completed Tasks:**
+- Task 1 with details
+- Task 2 with details
 
-## Next Session Goals
-Primary Objective: [What to accomplish next]
-Tasks:
-1. [Specific task]
-2. [Specific task]
+**Files Created/Modified:**
+- file1.py (description)
+- file2.py (description)
+
+**Technical Decisions:**
+1. Decision with rationale
+2. Decision with rationale
+
+**Issues Resolved:**
+- Issue and solution
+
+**Git Commit:** `hash` - "commit message"
 ```
+
+**SESSION_STATUS.md Updates:**
+- Update checklist items (✅)
+- Update "Next Session Goals" section
+- Keep concise and focused
 
 **Remember**: The framework is the specification. Code is the implementation. When in doubt, refer to the spec.
 
