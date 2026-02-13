@@ -14,19 +14,22 @@ This is a **Stock Recommendation Framework v2.0** implementation that combines e
 - Read relevant section BEFORE implementing any feature
 
 **Session Status:** `docs/SESSION_STATUS.md`
-- Current project state and progress
-- Next session goals and tasks
+- **Current project state** and next session goals (lean, focused)
 - **UPDATE THIS AT THE END OF EACH SESSION**
+
+**Session History:** `docs/SESSION_HISTORY.md`
+- **Detailed past session notes** (only load when needed to save context)
+- Archive of completed work, decisions, and technical details
 
 **CRITICAL**: This is SPEC-DRIVEN development - the specification comes first, implementation second.
 
 ## Session Workflow
 
 ### Starting a Session
-1. Read `docs/SESSION_STATUS.md` to understand current state
-2. Review "Next Session Goals" section
-3. Check "Completed Setup" checklist
-4. Begin work on planned tasks
+1. Read `docs/SESSION_STATUS.md` to understand current state and next goals
+2. Review "Next Session Tasks" section
+3. Begin work on planned tasks
+4. Reference `docs/SESSION_HISTORY.md` only if you need historical context
 
 ### During a Session
 - Follow development principles below
@@ -35,29 +38,33 @@ This is a **Stock Recommendation Framework v2.0** implementation that combines e
 - Document decisions in code comments
 
 ### Ending a Session
-**MANDATORY: Update `docs/SESSION_STATUS.md` before closing**
+**MANDATORY: Update BOTH session files before closing**
 
-Update the following sections:
-1. ✅ **Completed Setup** - Mark new items complete
-2. 📋 **Next Session Goals** - Define what comes next
-3. 🎯 **Current Environment** - Note any new tools/changes
-4. ⚠️ **Known Issues / Notes** - Document blockers or decisions
-
-Template for end-of-session update:
+**1. Update `docs/SESSION_HISTORY.md`** (detailed archive):
 ```markdown
-## Completed This Session
-- [ ] Item 1
-- [ ] Item 2
+## Session YYYY-MM-DD: [Phase/Task Description] ✅
 
-## Ready for Next Session
-Primary Objective: [Next major goal]
-Tasks: [Specific actionable items]
+**Completed Tasks:**
+- Detailed list of what was accomplished
+- Files created/modified
+- Test results
 
-## Blockers/Decisions
-[Any open questions or issues]
+**Technical Decisions:**
+- Decision 1 with rationale
+- Decision 2 with rationale
+
+**Issues Resolved:**
+- Issue and solution
+
+**Git Commit:** `hash` - "commit message"
 ```
 
-**Commit and push SESSION_STATUS.md** after updating.
+**2. Update `docs/SESSION_STATUS.md`** (lean, current state):
+- Update "Completed Infrastructure" checklist
+- Update "Next Session Goals" with new tasks
+- Keep it concise - detailed notes go in SESSION_HISTORY.md
+
+**Commit and push both files** after updating.
 
 ## Architecture Principles
 
