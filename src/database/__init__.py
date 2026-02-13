@@ -4,7 +4,7 @@ Provides database connection and session management
 """
 
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import QueuePool
 from contextlib import contextmanager
@@ -88,7 +88,7 @@ def test_connection():
     """
     try:
         with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+            result = conn.execute(text("SELECT 1"))
             assert result.fetchone()[0] == 1
             logger.success("Database connection successful!")
             return True

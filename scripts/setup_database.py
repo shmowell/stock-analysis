@@ -24,7 +24,7 @@ sys.path.insert(0, str(project_root))
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from loguru import logger
 
 # Load environment variables
@@ -112,7 +112,7 @@ def create_tables(engine):
                 logger.info(f"Executing SQL from {sql_file}")
                 with open(sql_file, 'r') as f:
                     sql_script = f.read()
-                    conn.execute(sql_script)
+                    conn.execute(text(sql_script))
                     conn.commit()
                 logger.success("Tables created successfully from SQL script!")
             else:
@@ -194,7 +194,7 @@ def main():
 
         # Test connection
         with engine.connect() as conn:
-            result = conn.execute("SELECT version()")
+            result = conn.execute(text("SELECT version()"))
             version = result.fetchone()[0]
             logger.success(f"Connected to PostgreSQL: {version[:50]}...")
 
