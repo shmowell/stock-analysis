@@ -198,18 +198,22 @@ class SentimentCalculator:
     def calculate_analyst_revision_score(
         self,
         recommendation_mean: Optional[float],
-        analyst_count: Optional[int]
+        analyst_count: Optional[int],
+        estimate_revisions_up: Optional[int] = None,
+        estimate_revisions_down: Optional[int] = None
     ) -> float:
         """
         Calculate analyst revision momentum score.
 
         Framework Section 5.2: Stock-Specific Sentiment #2
 
-        Note: Framework specifies % of estimates revised UP in past 90 days.
-        For MVP, we use recommendation_mean as a proxy:
-        - recommendation_mean scale: 1.0 (Strong Buy) to 5.0 (Strong Sell)
+        When real revision data is available (from FMP), uses framework scoring:
+        - >60% revised up: Score = 75 (bullish)
+        - 40-60% revised up: Score = 60
+        - 20-40% revised up: Score = 40
+        - <20% revised up: Score = 25 (bearish)
 
-        Mapping:
+        Falls back to recommendation_mean proxy when revision data unavailable:
         - 1.0-1.5 (Strong Buy): Score = 75
         - 1.5-2.5 (Buy): Score = 60
         - 2.5-3.5 (Hold): Score = 40
@@ -219,10 +223,46 @@ class SentimentCalculator:
         Args:
             recommendation_mean: Average analyst recommendation (1-5 scale)
             analyst_count: Number of analysts covering the stock
+            estimate_revisions_up: Count of estimates revised upward (from FMP)
+            estimate_revisions_down: Count of estimates revised downward (from FMP)
 
         Returns:
             Analyst revision score (0-100), 50 if data unavailable
         """
+        # Use real revision data when available (Framework Section 5.2 scoring)
+        if estimate_revisions_up is not None and estimate_revisions_down is not None:
+            total = estimate_revisions_up + estimate_revisions_down
+            if total > 0:
+                pct_up = (estimate_revisions_up / total) * 100
+
+                if pct_up > 60:
+                    base_score = 75.0
+                elif pct_up >= 40:
+                    base_score = 60.0
+                elif pct_up >= 20:
+                    base_score = 40.0
+                else:
+                    base_score = 25.0
+
+                # Dampen toward neutral if very few revisions observed
+                if total < 5:
+                    confidence_factor = 0.7
+                    score = 50 + (base_score - 50) * confidence_factor
+                    self.logger.debug(
+                        f"Low revision count ({total}), damping score"
+                    )
+                else:
+                    score = base_score
+
+                self.logger.debug(
+                    f"Real revision data: {estimate_revisions_up} up, "
+                    f"{estimate_revisions_down} down ({pct_up:.0f}% up) "
+                    f"-> score: {score:.1f}"
+                )
+                return score
+            # total == 0 means no revisions detected; fall through to proxy
+
+        # FALLBACK: Use recommendation_mean as proxy
         if recommendation_mean is None:
             self.logger.debug("No analyst recommendation data, using neutral score 50")
             return 50.0
@@ -249,8 +289,8 @@ class SentimentCalculator:
         score = 50 + (base_score - 50) * confidence_factor
 
         self.logger.debug(
-            f"Recommendation mean: {recommendation_mean:.2f}, "
-            f"Analysts: {analyst_count}, score: {score:.1f}"
+            f"Proxy: recommendation_mean={recommendation_mean:.2f}, "
+            f"analysts={analyst_count}, score: {score:.1f}"
         )
         return score
 
@@ -285,10 +325,12 @@ class SentimentCalculator:
         )
         scores.append(short_score)
 
-        # 2. Analyst Revision (using recommendation_mean as proxy)
+        # 2. Analyst Revision (real FMP data if available, else recommendation_mean proxy)
         revision_score = self.calculate_analyst_revision_score(
             stock_data.get('recommendation_mean'),
-            stock_data.get('analyst_count')
+            stock_data.get('analyst_count'),
+            estimate_revisions_up=stock_data.get('estimate_revisions_up_90d'),
+            estimate_revisions_down=stock_data.get('estimate_revisions_down_90d'),
         )
         scores.append(revision_score)
 

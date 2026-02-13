@@ -292,6 +292,9 @@ def prepare_sentiment_data(sentiment_records: Dict) -> tuple:
             'insider_net_shares': data.get('insider_net_shares_6m'),
             'upgrades_30d': data.get('upgrades_30d'),
             'downgrades_30d': data.get('downgrades_30d'),
+            # FMP revision data (Framework Section 5.2 - real revision tracking)
+            'estimate_revisions_up_90d': data.get('estimate_revisions_up_90d'),
+            'estimate_revisions_down_90d': data.get('estimate_revisions_down_90d'),
         }
 
         # Calculate recommendation_mean from buy/hold/sell ratings

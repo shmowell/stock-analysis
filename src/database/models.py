@@ -6,7 +6,7 @@ Framework Reference: docs/database_schema.md
 
 from sqlalchemy import (
     Column, String, Numeric, Boolean, DateTime, Date, Text,
-    Integer, BigInteger, ForeignKey
+    Integer, BigInteger, ForeignKey, UniqueConstraint
 )
 from sqlalchemy.sql import func
 from . import Base
@@ -274,3 +274,49 @@ class StockScore(Base):
 
     def __repr__(self):
         return f"<StockScore(ticker='{self.ticker}', date='{self.calculation_date}', score={self.final_composite_score})>"
+
+
+class FMPEstimateSnapshot(Base):
+    """
+    Snapshots of FMP analyst estimates for revision tracking.
+
+    Framework Section 5.2: Analyst Revision Momentum
+    Stores estimate snapshots on each collection run so that revisions
+    can be detected by comparing current vs previous values for the
+    same fiscal period.
+
+    Source: Financial Modeling Prep /stable/analyst-estimates endpoint
+    """
+    __tablename__ = 'fmp_estimate_snapshots'
+
+    id = Column(Integer, primary_key=True)
+    ticker = Column(String(10), ForeignKey('stocks.ticker'), nullable=False)
+    snapshot_date = Column(Date, nullable=False)  # When we collected this
+    fiscal_date = Column(Date, nullable=False)     # The quarter being estimated
+
+    # EPS estimates
+    eps_avg = Column(Numeric(10, 4))
+    eps_high = Column(Numeric(10, 4))
+    eps_low = Column(Numeric(10, 4))
+
+    # Revenue estimates
+    revenue_avg = Column(Numeric(20, 2))
+    revenue_high = Column(Numeric(20, 2))
+    revenue_low = Column(Numeric(20, 2))
+
+    # Analyst coverage
+    num_analysts_eps = Column(Integer)
+    num_analysts_revenue = Column(Integer)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('ticker', 'snapshot_date', 'fiscal_date',
+                         name='uq_fmp_snapshot_ticker_dates'),
+    )
+
+    def __repr__(self):
+        return (
+            f"<FMPEstimateSnapshot(ticker='{self.ticker}', "
+            f"snapshot='{self.snapshot_date}', fiscal='{self.fiscal_date}')>"
+        )
