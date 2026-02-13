@@ -4,6 +4,108 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-13 (Part 6): FMP API Integration - Analyst Estimates & Stock Grades ✅
+
+### Completed Tasks
+
+**FMP Data Collector (`src/data_collection/fmp.py`):**
+- Created FMPCollector class following AlphaVantageCollector pattern
+- Rate-limited at 10 calls/60 seconds (conservative for 250/day free tier)
+- `get_analyst_estimates()` — fetches `/stable/analyst-estimates` (annual, free tier)
+- `get_stock_grades()` — fetches `/stable/grades` (upgrades/downgrades)
+- `calculate_upgrades_downgrades()` — counts upgrade/downgrade/maintain within lookback window
+- `calculate_estimate_revisions()` — compares current vs previous snapshots for revision detection
+- Maps FMP field names (epsAvg, revenueAvg) to internal names (estimatedEpsAvg, estimatedRevenueAvg)
+
+**FMPEstimateSnapshot Model (`src/database/models.py`):**
+- New table for tracking estimate snapshots over time (revision detection)
+- Fields: ticker, snapshot_date, fiscal_date, eps_avg/high/low, revenue_avg/high/low, num_analysts
+- UniqueConstraint on (ticker, snapshot_date, fiscal_date)
+
+**Collection Script (`scripts/collect_fmp_data.py`):**
+- Runs AFTER collect_sentiment_data.py (updates existing SentimentData rows)
+- For each active stock: fetches grades + estimates, stores snapshots, updates sentiment record
+- Updates `data_source` to 'yahoo_finance,fmp'
+- Finds most recent sentiment record (not today's date) for updating
+
+**Sentiment Calculator Upgrade (`src/calculators/sentiment.py`):**
+- `calculate_analyst_revision_score()` now accepts optional `estimate_revisions_up` and `estimate_revisions_down`
+- When real revision data available: Framework Section 5.2 scoring (>60% up=75, 40-60%=60, 20-40%=40, <20%=25)
+- Confidence damping for <5 total revisions (0.7 factor toward neutral 50)
+- Falls back to existing recommendation_mean proxy when no revision data
+
+**Score Pipeline Update (`scripts/calculate_scores.py`):**
+- Added `estimate_revisions_up_90d` and `estimate_revisions_down_90d` to mapped_data
+
+**Exports (`src/data_collection/__init__.py`):**
+- Added FMPCollector to imports and `__all__`
+
+**Testing:**
+- `tests/test_fmp_collector.py` — 30 unit tests (mocked API, error handling, parsing, revision detection)
+- `tests/test_sentiment_revisions.py` — 26 unit tests (framework scoring, boundaries, damping, fallback, backward compat)
+- All 56 new tests passing
+- All 259 existing tests still passing (4 pre-existing AV rate limit failures)
+
+### Files Created/Modified
+
+**New Files:**
+- `src/data_collection/fmp.py` (317 lines) — FMP collector class
+- `scripts/collect_fmp_data.py` (341 lines) — Collection orchestration
+- `tests/test_fmp_collector.py` (~500 lines) — 30 FMP collector tests
+- `tests/test_sentiment_revisions.py` (274 lines) — 26 revision scoring tests
+
+**Modified Files:**
+- `src/database/models.py` — Added FMPEstimateSnapshot model, UniqueConstraint import
+- `src/calculators/sentiment.py` — Upgraded calculate_analyst_revision_score() with real data path
+- `scripts/calculate_scores.py` — Pass revision fields to calculator
+- `src/data_collection/__init__.py` — Export FMPCollector
+
+### Technical Decisions
+
+1. **FMP Free Tier Limitations**
+   - `period='annual'` works (200), `period='quarter'` returns 402 (premium)
+   - Insider trading endpoints return 402 (premium only)
+   - Some tickers (CAT, PG) return 402 — handled gracefully
+   - Decision: Use annual estimates + grades (both free tier)
+
+2. **Snapshot-Based Revision Tracking**
+   - FMP doesn't provide historical revision data directly
+   - Decision: Store estimate snapshots on each run, compare current vs previous
+   - First run: stores baseline, returns None (calculator falls back to proxy)
+   - Subsequent runs: detects EPS ($0.01 tolerance) and revenue (0.5%) revisions
+
+3. **Backward Compatibility**
+   - New optional parameters with defaults of None
+   - All existing tests pass unchanged
+   - Calculator behavior identical when revision data not available
+
+4. **Update Strategy**
+   - Finds most recent sentiment record per ticker (not today's date)
+   - Only updates FMP-sourced fields; leaves Yahoo data intact
+   - Updates data_source field to track provenance
+
+### Issues Resolved
+
+1. **FMP API key not loading** — needed dotenv.load_dotenv() before FMPCollector instantiation
+2. **analyst-estimates returned 402 with period='quarter'** — changed default to 'annual' (free tier)
+3. **FMP response field names different than expected** — mapped epsAvg→estimatedEpsAvg etc.
+4. **Test fixtures used old field names** — updated to match real FMP API field names
+5. **Sentiment records not found for today's date** — changed to find max(data_date) per ticker
+6. **CAT and PG return 402 on free tier** — handled gracefully, those stocks keep Yahoo-only data
+
+### Results
+
+- 13/15 stocks have FMP grade data in DB
+- 130 estimate snapshots stored as baseline
+- API budget: 30 calls/run (well within 250/day limit)
+- Total tests: 259 passing (56 new)
+
+### Git Commit
+
+**Commit:** `92d6443` — "feat: Add FMP API integration for analyst estimates and stock grades"
+
+---
+
 ## Session 2026-02-13 (Part 5): Phase 2 - Historical Data Extension & Sector Returns ✅
 
 ### Completed Tasks
