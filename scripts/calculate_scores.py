@@ -25,7 +25,7 @@ sys.path.insert(0, str(project_root / "src"))
 
 from sqlalchemy.orm import Session
 from database import get_db_session
-from database.models import Stock, FundamentalData, TechnicalIndicator, SentimentData
+from database.models import Stock, FundamentalData, TechnicalIndicator, SentimentData, PriceData
 from calculators.fundamental import FundamentalCalculator
 from calculators.technical import TechnicalCalculator
 from calculators.sentiment import SentimentCalculator
@@ -50,9 +50,10 @@ def load_all_data(session: Session) -> Dict:
     """
     print("Loading data from database...")
 
-    # Get all active stocks
+    # Get all active stocks and their market caps
     stocks = session.query(Stock).filter_by(is_active=True).all()
     tickers = [s.ticker for s in stocks]
+    market_caps = {s.ticker: float(s.market_cap) if s.market_cap else None for s in stocks}
     print(f"  Loaded {len(tickers)} active stocks")
 
     # Load fundamental data and convert to dicts
@@ -80,9 +81,11 @@ def load_all_data(session: Session) -> Dict:
     technical_data = {}
     for ti in technical_records:
         technical_data[ti.ticker] = {
+            'sma_20': float(ti.sma_20) if ti.sma_20 else None,
             'sma_50': float(ti.sma_50) if ti.sma_50 else None,
             'sma_200': float(ti.sma_200) if ti.sma_200 else None,
             'mad': float(ti.mad) if ti.mad else None,
+            'price_vs_200ma': ti.price_vs_200ma if ti.price_vs_200ma is not None else None,
             'momentum_12_1': float(ti.momentum_12_1) if ti.momentum_12_1 else None,
             'momentum_6m': float(ti.momentum_6m) if ti.momentum_6m else None,
             'momentum_3m': float(ti.momentum_3m) if ti.momentum_3m else None,
@@ -94,6 +97,19 @@ def load_all_data(session: Session) -> Dict:
             'sector_relative_6m': float(ti.sector_relative_6m) if ti.sector_relative_6m else None,
         }
     print(f"  Loaded {len(technical_data)} technical records")
+
+    # Load latest prices for each stock
+    latest_prices = {}
+    for ticker in tickers:
+        latest_price_record = (
+            session.query(PriceData)
+            .filter(PriceData.ticker == ticker)
+            .order_by(PriceData.date.desc())
+            .first()
+        )
+        if latest_price_record:
+            latest_prices[ticker] = float(latest_price_record.close)
+    print(f"  Loaded {len(latest_prices)} latest prices")
 
     # Load sentiment data and convert to dicts
     sentiment_records = session.query(SentimentData).all()
@@ -120,11 +136,23 @@ def load_all_data(session: Session) -> Dict:
         }
     print(f"  Loaded {len(sentiment_data)} sentiment records")
 
+    # Add latest price to technical data for uptrend calculations
+    for ticker in tickers:
+        if ticker in technical_data and ticker in latest_prices:
+            technical_data[ticker]['current_price'] = latest_prices[ticker]
+
+    # Add market_cap to sentiment data
+    for ticker in tickers:
+        if ticker in sentiment_data and ticker in market_caps:
+            sentiment_data[ticker]['market_cap'] = market_caps[ticker]
+
     return {
         'tickers': tickers,
         'fundamental_data': fundamental_data,
         'technical_data': technical_data,
-        'sentiment_data': sentiment_data
+        'sentiment_data': sentiment_data,
+        'latest_prices': latest_prices,
+        'market_caps': market_caps
     }
 
 
@@ -171,11 +199,34 @@ def prepare_fundamental_data(fundamental_records: Dict) -> tuple:
 def prepare_technical_data(technical_records: Dict) -> tuple:
     """Prepare technical data for calculator (already in dict format).
 
+    Computes derived indicators:
+    - short_term_uptrend: Price > 20-day MA AND 20-day > 50-day
+    - long_term_uptrend: Price > 50-day MA AND 50-day > 200-day
+
     Returns:
         Tuple of (stock_data dict, universe_metrics dict)
     """
     # Data is already in the right format
     stock_data = technical_records
+
+    # Compute derived uptrend indicators for each stock
+    for ticker, data in stock_data.items():
+        current_price = data.get('current_price')
+        sma_20 = data.get('sma_20')
+        sma_50 = data.get('sma_50')
+        sma_200 = data.get('sma_200')
+
+        # Short-term uptrend: Price > 20-day MA AND 20-day > 50-day
+        if current_price is not None and sma_20 is not None and sma_50 is not None:
+            data['short_term_uptrend'] = (current_price > sma_20) and (sma_20 > sma_50)
+        else:
+            data['short_term_uptrend'] = None
+
+        # Long-term uptrend: Price > 50-day MA AND 50-day > 200-day
+        if current_price is not None and sma_50 is not None and sma_200 is not None:
+            data['long_term_uptrend'] = (current_price > sma_50) and (sma_50 > sma_200)
+        else:
+            data['long_term_uptrend'] = None
 
     # Build universe metrics
     universe = {}
@@ -191,18 +242,49 @@ def prepare_technical_data(technical_records: Dict) -> tuple:
 
 
 def prepare_sentiment_data(sentiment_records: Dict) -> tuple:
-    """Prepare sentiment data for calculator (already in dict format).
+    """Prepare sentiment data for calculator.
+
+    Computes derived metrics:
+    - recommendation_mean: Weighted average of buy/hold/sell ratings (1-5 scale)
+    - Maps field names to match calculator expectations
 
     Returns:
         Tuple of (stock_data dict, universe_metrics dict)
     """
-    # Data is already in the right format
-    stock_data = sentiment_records
+    stock_data = {}
+
+    for ticker, data in sentiment_records.items():
+        # Map field names for calculator
+        mapped_data = {
+            'days_to_cover': data.get('days_to_cover'),
+            'analyst_target': data.get('consensus_price_target'),
+            'analyst_count': data.get('num_analyst_opinions'),
+            'market_cap': data.get('market_cap'),
+            'insider_net_shares': data.get('insider_net_shares_6m'),
+            'upgrades_30d': data.get('upgrades_30d'),
+            'downgrades_30d': data.get('downgrades_30d'),
+        }
+
+        # Calculate recommendation_mean from buy/hold/sell ratings
+        # Scale: 1.0 = Strong Buy, 2.0 = Buy, 3.0 = Hold, 4.0 = Sell, 5.0 = Strong Sell
+        num_buy = data.get('num_buy_ratings') or 0
+        num_hold = data.get('num_hold_ratings') or 0
+        num_sell = data.get('num_sell_ratings') or 0
+        total_ratings = num_buy + num_hold + num_sell
+
+        if total_ratings > 0:
+            # Simplified: Buy=1, Hold=3, Sell=5
+            recommendation_mean = (num_buy * 1.0 + num_hold * 3.0 + num_sell * 5.0) / total_ratings
+            mapped_data['recommendation_mean'] = recommendation_mean
+        else:
+            mapped_data['recommendation_mean'] = None
+
+        stock_data[ticker] = mapped_data
 
     # Build universe metrics
     universe = {}
-    metrics = ['recommendation', 'num_analysts', 'target_price', 'short_ratio',
-               'short_percent_float', 'insider_transactions', 'insider_net_shares']
+    metrics = ['recommendation_mean', 'analyst_count', 'analyst_target', 'days_to_cover',
+               'market_cap', 'insider_net_shares']
 
     for metric in metrics:
         values = [stock.get(metric) for stock in stock_data.values() if stock.get(metric) is not None]
@@ -235,6 +317,7 @@ def calculate_pillar_scores(data: Dict) -> Dict[str, Dict[str, float]]:
     fundamental_data = data['fundamental_data']
     technical_data = data['technical_data']
     sentiment_data = data['sentiment_data']
+    latest_prices = data['latest_prices']
 
     # Initialize calculators
     fundamental_calc = FundamentalCalculator()
@@ -248,8 +331,8 @@ def calculate_pillar_scores(data: Dict) -> Dict[str, Dict[str, float]]:
     tech_stock_data, tech_universe = prepare_technical_data(technical_data)
     print(f"  Prepared technical data: {len(tech_stock_data)} stocks, {len(tech_universe)} metrics")
 
-    # TODO: Sentiment calculator needs refactoring for integration
-    print(f"  Sentiment scores: Using default neutral score (50.0) for all stocks")
+    sent_stock_data, sent_universe = prepare_sentiment_data(sentiment_data)
+    print(f"  Prepared sentiment data: {len(sent_stock_data)} stocks, {len(sent_universe)} metrics")
 
     # Calculate scores for each stock
     stock_scores = {}
@@ -276,9 +359,15 @@ def calculate_pillar_scores(data: Dict) -> Dict[str, Dict[str, float]]:
             tech_score = 50.0
 
         # Sentiment score
-        # TODO: Sentiment calculator requires current_price and market_cap
-        # For now, use default neutral score
-        sent_score = 50.0
+        if ticker in sent_stock_data and ticker in latest_prices:
+            current_price = latest_prices[ticker]
+            sent_score = sentiment_calc.calculate_sentiment_score(
+                sent_stock_data[ticker],
+                current_price,
+                market_data=None  # Market-wide sentiment not yet implemented
+            )
+        else:
+            sent_score = 50.0
 
         stock_scores[ticker] = {
             'fundamental': fund_score if fund_score is not None else 50.0,

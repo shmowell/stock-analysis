@@ -69,17 +69,17 @@ class TechnicalCalculator:
             Momentum score (0-100 percentile), or None if insufficient data
         """
         # 12-1 month return (higher is better)
-        if stock_metrics.get('return_12_1_month') is None:
+        if stock_metrics.get('momentum_12_1') is None:
             self.logger.warning("12-1 month return not available")
             return None
 
-        if not universe_metrics.get('return_12_1_month'):
+        if not universe_metrics.get('momentum_12_1'):
             self.logger.warning("Universe 12-1 month returns not available")
             return None
 
         momentum_rank = percentile_rank(
-            stock_metrics['return_12_1_month'],
-            universe_metrics['return_12_1_month']
+            stock_metrics['momentum_12_1'],
+            universe_metrics['momentum_12_1']
         )
 
         if momentum_rank is not None:
@@ -111,7 +111,7 @@ class TechnicalCalculator:
             Trend strength score (0-100), or None if insufficient data
         """
         # Component 1: Price vs 200-day MA (binary)
-        price_vs_ma200 = stock_metrics.get('price_vs_ma200_binary')
+        price_vs_ma200 = stock_metrics.get('price_vs_200ma')
         if price_vs_ma200 is None:
             self.logger.warning("Price vs 200-MA binary not available")
             return None
@@ -231,12 +231,32 @@ class TechnicalCalculator:
         Returns:
             Relative strength score (0-100 percentile), or None if insufficient data
         """
-        # Get stock's 6-month return
-        stock_return_6m = stock_metrics.get('return_6_month')
-        sector_return_6m = stock_metrics.get('sector_return_6_month')
+        # Check if we have pre-calculated sector relative performance
+        sector_relative = stock_metrics.get('sector_relative_6m')
+
+        if sector_relative is not None:
+            # Use pre-calculated spread directly
+            if not universe_metrics.get('sector_relative_6m'):
+                self.logger.warning("Universe sector relative 6m not available")
+                return None
+
+            rs_rank = percentile_rank(
+                sector_relative,
+                universe_metrics['sector_relative_6m']
+            )
+
+            if rs_rank is not None:
+                self.logger.info(
+                    f"Relative strength: {rs_rank:.1f} (Sector relative: {sector_relative:.2%})"
+                )
+            return rs_rank
+
+        # Fallback: Calculate from individual returns if available
+        stock_return_6m = stock_metrics.get('momentum_6m')
+        sector_return_6m = stock_metrics.get('sector_return_6m')
 
         if stock_return_6m is None or sector_return_6m is None:
-            self.logger.warning("6-month returns not available")
+            self.logger.warning("6-month returns not available - relative strength will be skipped")
             return None
 
         # Calculate spread (stock return - sector return)
@@ -284,7 +304,7 @@ class TechnicalCalculator:
         Returns:
             RSI trend score (0 or 100), or None if insufficient data
         """
-        rsi = stock_metrics.get('rsi')
+        rsi = stock_metrics.get('rsi_14')
         if rsi is None:
             self.logger.warning("RSI not available")
             return None

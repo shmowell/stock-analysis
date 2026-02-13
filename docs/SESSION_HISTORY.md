@@ -4,6 +4,171 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-12 (final session): Phase 2 - Calculator Integration & Data Quality Fixes ✅
+
+### Completed Tasks
+
+**Technical Calculator Field Mapping (HIGH PRIORITY):**
+- ✅ Fixed field name mismatches between database schema and calculator expectations
+- ✅ Added `sma_20` and `price_vs_200ma` to technical data loading in calculate_scores.py
+- ✅ Added latest price loading for each stock (required for uptrend calculations)
+- ✅ Updated `prepare_technical_data()` to compute derived uptrend indicators:
+  - `short_term_uptrend`: Price > 20-day MA AND 20-day > 50-day
+  - `long_term_uptrend`: Price > 50-day MA AND 50-day > 200-day
+- ✅ Updated TechnicalCalculator field name mappings:
+  - `return_12_1_month` → `momentum_12_1`
+  - `price_vs_ma200_binary` → `price_vs_200ma`
+  - `return_6_month` → `momentum_6m`
+  - `rsi` → `rsi_14`
+  - `sector_return_6_month` → `sector_relative_6m` (with fallback handling)
+- ✅ Technical scores now using real calculated indicators (range: 0.0 to 95.24, was all 50.0)
+- ✅ All 15 stocks successfully scored with graceful handling of missing data
+
+**Sentiment Calculator Integration (HIGH PRIORITY):**
+- ✅ Added `market_cap` loading from Stock table
+- ✅ Updated `prepare_sentiment_data()` to compute `recommendation_mean` from buy/hold/sell ratings
+  - Calculation: (buy×1 + hold×3 + sell×5) / total_ratings
+  - Uses industry-standard 1-5 scale (1=Strong Buy, 5=Strong Sell)
+- ✅ Mapped database field names to calculator expectations:
+  - `consensus_price_target` → `analyst_target`
+  - `num_analyst_opinions` → `analyst_count`
+  - `insider_net_shares_6m` → `insider_net_shares`
+- ✅ Integrated sentiment calculator into calculate_pillar_scores() loop
+- ✅ Sentiment scores now using real stock data (range: 45.5 to 54.5, was all 50.0)
+- ✅ All 15 stocks successfully scored
+
+**Files Modified:**
+- `scripts/calculate_scores.py`:
+  - Added PriceData model import
+  - Added market_cap loading from Stock table (line 54-56)
+  - Added latest price loading and integration (line 99-111)
+  - Added current_price to technical_data for uptrend calculations (line 138-141)
+  - Added market_cap to sentiment_data (line 144-146)
+  - Updated return dict to include latest_prices and market_caps
+  - Enhanced `prepare_technical_data()` to compute uptrend indicators (line 195-223)
+  - Enhanced `prepare_sentiment_data()` to compute recommendation_mean and map fields (line 237-288)
+  - Added sentiment_calc integration in calculate_pillar_scores() (line 293-334)
+- `src/calculators/technical.py`:
+  - Fixed momentum score field names (line 71-82)
+  - Fixed trend strength field names (line 114)
+  - Updated relative strength to use sector_relative_6m with fallback (line 234-281)
+  - Fixed RSI field name (line 307)
+
+**Integration Test Results:**
+- **Universe:** 15 stocks successfully processed
+- **Fundamental Scores:** 32.1 to 64.8 (unchanged - already working)
+- **Technical Scores:** 0.0 to 95.24 (FIXED - was all 50.0)
+  - CAT: 95.24 (strong uptrend, high RSI)
+  - JNJ: 92.86 (strong trend indicators)
+  - WMT: 90.48 (excellent technical position)
+  - MSFT: 0.0 (weak trend, low RSI, downtrend)
+- **Sentiment Scores:** 45.5 to 54.5 (FIXED - was all 50.0)
+  - NVDA, MSFT, UNH, DIS: 54.5 (bullish analyst sentiment)
+  - GOOGL: 52.2 (above-average sentiment)
+  - JPM, AAPL, BA: 50.0 (neutral sentiment)
+  - WMT, KO, PG: 47.8-47.8 (slightly bearish)
+  - JNJ, CAT, XOM: 45.5 (bearish analyst sentiment)
+- **Composite Scores:** 32.0 to 65.7 (now using all three real pillars!)
+- **Recommendations:**
+  - STRONG BUY: 2 stocks (JNJ 93%, CAT 87%)
+  - BUY: 2 stocks (NVDA 80%, XOM 73%)
+  - HOLD: 6 stocks (GOOGL, WMT, JPM, AAPL, KO, BA)
+  - SELL: 2 stocks (PG 27%, MSFT 20%)
+  - STRONG SELL: 3 stocks (V, UNH, DIS)
+
+**Technical Decisions:**
+
+1. **Technical Calculator Field Mapping Strategy:**
+   - Decision: Update calculator to use actual database field names (Option A)
+   - Alternative considered: Add translation layer in prepare_technical_data
+   - Rationale: Direct mapping is cleaner, follows fundamental calculator pattern
+   - Impact: Calculator now directly compatible with database schema
+
+2. **Uptrend Indicator Calculation:**
+   - Decision: Compute short_term_uptrend and long_term_uptrend in prepare_technical_data()
+   - Location: Not stored in database, calculated on-the-fly from SMA values
+   - Logic:
+     - Short-term: Price > 20-day MA AND 20-day > 50-day
+     - Long-term: Price > 50-day MA AND 50-day > 200-day
+   - Rationale: Framework Section 4.2 specifies these as trend indicators
+   - Impact: Multi-speed trend component now fully functional
+
+3. **Sentiment Field Mapping Strategy:**
+   - Decision: Compute recommendation_mean in prepare_sentiment_data(), map all field names
+   - Calculation: Weighted average using 1-5 scale (buy=1, hold=3, sell=5)
+   - Rationale: Database stores raw counts, calculator expects aggregated mean
+   - Impact: Analyst consensus scoring now works with real data
+
+4. **Missing momentum_12_1 Data:**
+   - Observation: All stocks have momentum_12_1 = None
+   - Root cause: 12-1 month momentum requires 13 months of data, we only have 12
+   - Calculator behavior: Gracefully skips momentum component, auto-normalizes weights
+   - Decision: Accept graceful degradation for now
+   - Future fix: Collect additional historical data (1+ years)
+   - Impact: Technical scores still meaningful using other components (trend, RSI, multi-speed)
+
+5. **Sector Relative Performance:**
+   - Observation: sector_relative_6m is None for all stocks (not yet calculated)
+   - Calculator behavior: Falls back to stock return only (sector return missing)
+   - Decision: Updated calculator to check for sector_relative_6m first, with fallback
+   - Future fix: Calculate sector returns and relative performance
+   - Impact: Relative strength component currently returns None, auto-normalized
+
+**Issues Resolved:**
+
+1. **Technical scores defaulting to 50.0:**
+   - Cause: Database field names didn't match calculator expectations
+   - Solution: Updated all field name references in technical.py
+   - Result: Technical scores now range 0.0-95.24 with meaningful variation
+
+2. **Sentiment scores defaulting to 50.0:**
+   - Cause: Calculator required current_price and market_cap parameters not in sentiment_data
+   - Solution: Load latest_prices from PriceData, load market_cap from Stock table
+   - Result: Sentiment scores now range 45.5-54.5 with real analyst data
+
+3. **Missing derived indicators:**
+   - Cause: short_term_uptrend and long_term_uptrend not in database
+   - Solution: Calculate on-the-fly in prepare_technical_data() from SMA values
+   - Result: Multi-speed trend component now functional
+
+**Known Limitations:**
+
+1. **momentum_12_1 is None for all stocks:**
+   - Requires 13 months of historical data
+   - Calculator handles gracefully by auto-normalizing weights
+   - Technical scores still valid using available components
+   - TODO: Collect 13+ months of historical price data
+
+2. **sector_relative_6m is None for all stocks:**
+   - Requires sector return calculation
+   - Calculator handles gracefully with fallback
+   - Relative strength component currently skipped
+   - TODO: Implement sector return calculations
+
+3. **Market-wide sentiment still defaults to 50.0:**
+   - Requires VIX, AAII, Put/Call ratio, fund flows data
+   - Currently using stock-specific sentiment only (60% of total)
+   - TODO: Implement market sentiment data collection (Phase 2 Medium Priority)
+
+**Framework Compliance:**
+- ✅ Section 1.2: Percentile-based scoring (all three pillars)
+- ✅ Section 1.3: Research-backed weights (45/35/20)
+- ✅ Section 4: Technical scoring with real indicators
+- ✅ Section 5: Sentiment scoring with real stock data
+- ⏳ Section 5.1: Market-wide sentiment (defaults to neutral)
+- ✅ Section 7.1-7.2: Composite scoring and recommendations
+
+**Phase 2 Success Criteria:**
+- ✅ Technical scores using real calculated indicators (0.0 to 95.24)
+- ✅ Sentiment scores using real stock data (45.5 to 54.5)
+- ⏳ Market-wide sentiment data collected (still pending)
+- ⏳ Composite score unit tests created (still pending)
+- ✅ Full end-to-end test with all three pillars producing real scores
+
+**Git Commit:** `8f61b36` - "feat: Fix calculator integration and field mapping"
+
+---
+
 ## Session 2026-02-12 (late evening): Phase 1 Week 2 - Composite Score Integration ✅
 
 ### Completed Tasks
