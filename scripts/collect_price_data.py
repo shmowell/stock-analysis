@@ -2,7 +2,7 @@
 Collect and store historical price data for all stocks in the universe.
 
 Framework Reference: Section 2.2 (Technical Data)
-Purpose: Populate price_data table with 1 year of daily prices
+Purpose: Populate price_data table with 2 years of daily prices
 Required for: Percentile ranking and technical score calculations
 
 Usage:
@@ -240,8 +240,10 @@ def main():
     collector = PriceDataCollector()
 
     try:
-        # Collect 1 year of price data for all stocks
-        stats = collector.collect_all_stocks(period="1y")
+        # Collect 2 years of price data for all stocks
+        # Framework Section 4.2: 12-1 month momentum requires 13+ months
+        # Using 2y to ensure sufficient data for all momentum calculations
+        stats = collector.collect_all_stocks(period="2y")
 
         # Print summary
         collector.print_summary()

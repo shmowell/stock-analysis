@@ -4,6 +4,44 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-13 (Part 5): Phase 2 - Historical Data Extension & Sector Returns ✅
+
+### Completed Tasks
+- Extended price data collection from 1 year to 2 years (3,766 → 7,545 records)
+- Enabled momentum_12_1 for all 15 stocks (range: -34.9% to +83.6%)
+- Implemented sector-relative 6-month return calculations (sector_relative_6m)
+- All 6 technical sub-components now operational (was 4/6)
+- Fixed calculate_scores.py to use latest technical record per ticker (was loading stale records)
+- Fixed `is not None` checks replacing falsy truthiness checks for numeric fields
+- Cleaned up stale technical_indicators records from 2026-02-12
+- Tested AAII sentiment with Nasdaq Data Link API key — confirmed requires premium subscription (403)
+- Documented FMP API as future enhancement (free tier: 250 calls/day, ~87 symbols)
+
+### Files Modified
+- `scripts/collect_price_data.py` — changed period from "1y" to "2y"
+- `scripts/calculate_technical_indicators.py` — added `calculate_sector_relative_returns()` method
+- `scripts/calculate_scores.py` — fixed latest-record-per-ticker query, fixed `is not None` checks
+- `docs/SESSION_STATUS.md` — updated AAII status, added FMP future enhancement note
+
+### Technical Decisions
+1. Used 2y period (not 18mo) for simplicity — Yahoo Finance supports "2y" natively
+2. Sector-relative returns calculated as post-processing step (requires all stocks' data first)
+3. Sector averages computed within universe only (7 sectors, 15 stocks)
+4. Stale records from 2026-02-12 deleted to avoid confusion with latest 2026-02-13 records
+5. FMP free tier too limited for primary data source — deferred to future enhancement
+
+### Score Quality Improvements
+- Technical scores: all 6 sub-components operational (momentum, trend, volume, sector relative, RSI, multi-speed)
+- Composite score range: 32.1 to 64.0
+- Recommendation distribution: 2 Strong Buy, 2 Buy, 6 Hold, 2 Sell, 3 Strong Sell
+- Top picks: JNJ (64.0), CAT (62.8), GOOGL (62.5), NVDA (62.4)
+
+### Test Results
+- 190/190 unit tests passing
+- 4 pre-existing Alpha Vantage API integration test failures (rate limit, unchanged)
+
+---
+
 ## Session 2026-02-13 (Part 4): Phase 2 - Complete Market Sentiment Indicators ✅
 
 ### Completed Tasks
@@ -139,7 +177,7 @@ Test Results:
 
 ### Git Commit
 
-**Commit:** (pending) - "feat: Implement remaining market sentiment indicators (Put/Call, Fund Flows, AAII)"
+**Commit:** `2cfc9f2` - "feat: Implement remaining market sentiment indicators (Put/Call, Fund Flows, AAII)"
 
 ---
 

@@ -313,6 +313,77 @@ class TechnicalIndicatorCalculator:
                 self.stats['errors'].append(str(e))
                 raise
 
+    def calculate_sector_relative_returns(self) -> None:
+        """
+        Calculate sector-relative 6-month returns for all stocks.
+
+        Framework Section 4.2: Relative strength vs sector measures
+        how much a stock outperformed/underperformed its sector peers.
+
+        sector_relative_6m = stock's 6m return - sector average 6m return
+
+        Must run AFTER individual indicators are calculated.
+        """
+        logger.info("Calculating sector-relative 6-month returns...")
+
+        with get_db_session() as session:
+            # Get all stocks with their sectors and 6m momentum
+            sql = text("""
+                SELECT s.ticker, s.sector, ti.momentum_6m
+                FROM stocks s
+                JOIN technical_indicators ti ON s.ticker = ti.ticker
+                WHERE s.is_active = true AND ti.momentum_6m IS NOT NULL
+            """)
+            result = session.execute(sql)
+            rows = result.fetchall()
+
+            if not rows:
+                logger.warning("No stocks with 6m momentum data found")
+                return
+
+            # Group by sector and calculate averages
+            sector_returns: Dict[str, List[float]] = {}
+            stock_data: List[Dict] = []
+            for ticker, sector, momentum_6m in rows:
+                m6m = float(momentum_6m)
+                stock_data.append({'ticker': ticker, 'sector': sector, 'momentum_6m': m6m})
+                sector_returns.setdefault(sector, []).append(m6m)
+
+            sector_averages = {
+                sector: sum(returns) / len(returns)
+                for sector, returns in sector_returns.items()
+            }
+
+            # Log sector averages
+            for sector, avg in sorted(sector_averages.items()):
+                count = len(sector_returns[sector])
+                logger.info(f"  {sector}: avg 6m return = {avg:.2%} ({count} stocks)")
+
+            # Calculate and update sector_relative_6m for each stock
+            updated = 0
+            for stock in stock_data:
+                sector_avg = sector_averages[stock['sector']]
+                relative = stock['momentum_6m'] - sector_avg
+
+                update_sql = text("""
+                    UPDATE technical_indicators
+                    SET sector_relative_6m = :relative
+                    WHERE ticker = :ticker
+                """)
+                session.execute(update_sql, {
+                    'relative': round(relative, 6),
+                    'ticker': stock['ticker']
+                })
+
+                logger.info(
+                    f"  {stock['ticker']}: 6m={stock['momentum_6m']:.2%}, "
+                    f"sector avg={sector_avg:.2%}, relative={relative:+.2%}"
+                )
+                updated += 1
+
+            session.commit()
+            logger.info(f"Updated sector_relative_6m for {updated} stocks")
+
     def process_all_stocks(self) -> None:
         """Calculate and store indicators for all active stocks."""
         logger.info("=" * 60)
@@ -332,6 +403,10 @@ class TechnicalIndicatorCalculator:
                 logger.error(f"Error processing {ticker}: {e}")
                 self.stats['errors'].append(f"{ticker}: {str(e)}")
                 continue
+
+        # Calculate sector-relative returns after all individual indicators
+        # Framework Section 4.2: Requires cross-stock comparison within sectors
+        self.calculate_sector_relative_returns()
 
         self.print_summary()
 

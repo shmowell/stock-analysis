@@ -76,25 +76,29 @@ def load_all_data(session: Session) -> Dict:
         }
     print(f"  Loaded {len(fundamental_data)} fundamental records")
 
-    # Load technical indicators and convert to dicts
-    technical_records = session.query(TechnicalIndicator).all()
+    # Load technical indicators - only latest record per ticker
+    technical_records = session.query(TechnicalIndicator).order_by(
+        TechnicalIndicator.ticker, TechnicalIndicator.calculation_date.desc()
+    ).all()
     technical_data = {}
     for ti in technical_records:
+        if ti.ticker in technical_data:
+            continue  # Skip older records, keep only latest
         technical_data[ti.ticker] = {
-            'sma_20': float(ti.sma_20) if ti.sma_20 else None,
-            'sma_50': float(ti.sma_50) if ti.sma_50 else None,
-            'sma_200': float(ti.sma_200) if ti.sma_200 else None,
-            'mad': float(ti.mad) if ti.mad else None,
+            'sma_20': float(ti.sma_20) if ti.sma_20 is not None else None,
+            'sma_50': float(ti.sma_50) if ti.sma_50 is not None else None,
+            'sma_200': float(ti.sma_200) if ti.sma_200 is not None else None,
+            'mad': float(ti.mad) if ti.mad is not None else None,
             'price_vs_200ma': ti.price_vs_200ma if ti.price_vs_200ma is not None else None,
-            'momentum_12_1': float(ti.momentum_12_1) if ti.momentum_12_1 else None,
-            'momentum_6m': float(ti.momentum_6m) if ti.momentum_6m else None,
-            'momentum_3m': float(ti.momentum_3m) if ti.momentum_3m else None,
-            'momentum_1m': float(ti.momentum_1m) if ti.momentum_1m else None,
-            'avg_volume_20d': float(ti.avg_volume_20d) if ti.avg_volume_20d else None,
-            'relative_volume': float(ti.relative_volume) if ti.relative_volume else None,
-            'rsi_14': float(ti.rsi_14) if ti.rsi_14 else None,
-            'adx': float(ti.adx) if ti.adx else None,
-            'sector_relative_6m': float(ti.sector_relative_6m) if ti.sector_relative_6m else None,
+            'momentum_12_1': float(ti.momentum_12_1) if ti.momentum_12_1 is not None else None,
+            'momentum_6m': float(ti.momentum_6m) if ti.momentum_6m is not None else None,
+            'momentum_3m': float(ti.momentum_3m) if ti.momentum_3m is not None else None,
+            'momentum_1m': float(ti.momentum_1m) if ti.momentum_1m is not None else None,
+            'avg_volume_20d': float(ti.avg_volume_20d) if ti.avg_volume_20d is not None else None,
+            'relative_volume': float(ti.relative_volume) if ti.relative_volume is not None else None,
+            'rsi_14': float(ti.rsi_14) if ti.rsi_14 is not None else None,
+            'adx': float(ti.adx) if ti.adx is not None else None,
+            'sector_relative_6m': float(ti.sector_relative_6m) if ti.sector_relative_6m is not None else None,
         }
     print(f"  Loaded {len(technical_data)} technical records")
 
