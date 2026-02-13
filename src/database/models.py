@@ -86,20 +86,25 @@ class FundamentalData(Base):
     net_margin = Column(Numeric(10, 4))
     operating_margin = Column(Numeric(10, 4))
     gross_margin = Column(Numeric(10, 4))
+    fcf_to_revenue = Column(Numeric(10, 4))
 
     # Growth Metrics
-    revenue_growth = Column(Numeric(10, 4))
-    earnings_growth = Column(Numeric(10, 4))
-    fcf_growth = Column(Numeric(10, 4))
+    revenue_growth_yoy = Column(Numeric(10, 4))
+    eps_growth_yoy = Column(Numeric(10, 4))
+    revenue_growth_3y_cagr = Column(Numeric(10, 4))
+    fcf_growth_yoy = Column(Numeric(10, 4))
+    book_value_growth = Column(Numeric(10, 4))
 
     # Financial Health
     current_ratio = Column(Numeric(10, 2))
     quick_ratio = Column(Numeric(10, 2))
     debt_to_equity = Column(Numeric(10, 2))
+    interest_coverage = Column(Numeric(10, 2))
+    cash_to_assets = Column(Numeric(10, 4))
 
     # Market Data
-    market_cap = Column(Numeric(20, 2))
     beta = Column(Numeric(10, 4))
+    shares_outstanding = Column(BigInteger)
 
     data_source = Column(String(50))
     created_at = Column(DateTime, server_default=func.now())
