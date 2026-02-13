@@ -275,17 +275,25 @@ class TestMarketSentiment:
     Test market-wide sentiment component (40% of total sentiment).
 
     Framework Section 5.2: Market-Wide Sentiment
-    Note: Currently not implemented, defaults to 50.
+    Market sentiment score is pre-calculated by collect_market_sentiment.py
+    and passed via market_data dict.
     """
 
     def test_market_sentiment_default(self):
-        """Market sentiment should default to 50 (neutral) when not implemented."""
+        """Market sentiment should default to 50 (neutral) when no data."""
         calc = SentimentCalculator()
         market_sentiment = calc.calculate_market_sentiment(None)
         assert market_sentiment == 50.0
 
-    def test_market_sentiment_with_data(self):
-        """Market sentiment should still return 50 even with data (not yet implemented)."""
+    def test_market_sentiment_with_score(self):
+        """Market sentiment should use the pre-calculated market_sentiment_score."""
+        calc = SentimentCalculator()
+        market_data = {'market_sentiment_score': 65.0, 'num_indicators_available': 4}
+        market_sentiment = calc.calculate_market_sentiment(market_data)
+        assert market_sentiment == 65.0
+
+    def test_market_sentiment_without_score_key(self):
+        """Market data without market_sentiment_score should default to 50."""
         calc = SentimentCalculator()
         market_data = {'vix': 20.0, 'aaii_spread': 5.0}
         market_sentiment = calc.calculate_market_sentiment(market_data)

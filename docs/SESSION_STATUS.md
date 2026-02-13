@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-13 (market sentiment VIX implementation complete)
-**Current Phase:** Phase 2 - In Progress (4/6 tasks complete)
-**Status:** Market sentiment partially operational (VIX working, 3 indicators pending)
+**Last Updated:** 2026-02-13 (market sentiment 3/4 indicators operational)
+**Current Phase:** Phase 2 - In Progress (5/6 tasks complete)
+**Status:** Market sentiment operational (VIX + Put/Call + Fund Flows working, AAII pending premium API)
 
 > 📖 **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -29,15 +29,18 @@
 - ✅ **Composite score calculator:** Combines all three pillars with 45/35/20 weights
 - ✅ **Integration testing:** Successfully calculated scores for all 15 stocks
 
-### Phase 2 Week 1: Calculator Integration & Data Quality ✅ 4/6 Complete
+### Phase 2 Week 1: Calculator Integration & Data Quality ✅ 5/6 Complete
 - ✅ **Technical calculator field mapping:** All field names aligned with database schema
 - ✅ **Technical scores operational:** Range 0.0-95.24 using real indicators
 - ✅ **Sentiment calculator integration:** Fully integrated with current_price and market_cap
-- ✅ **Sentiment scores operational:** Range 45.7-54.7 using real analyst/insider + market data
+- ✅ **Sentiment scores operational:** Range 46.0-55.0 using real analyst/insider + market data
 - ✅ **Derived indicators computed:** short_term_uptrend, long_term_uptrend, recommendation_mean
 - ✅ **End-to-end scoring:** All three pillars producing meaningful, varied scores
-- ✅ **Composite calculator unit tests:** 62 comprehensive tests, all passing (164 total project tests)
-- ✅ **Market sentiment (VIX):** VIX z-score collection implemented and integrated (score: 52.23)
+- ✅ **Composite calculator unit tests:** 62 comprehensive tests, all passing
+- ✅ **Market sentiment (VIX):** VIX z-score from Yahoo Finance (score: 53.49)
+- ✅ **Market sentiment (Put/Call):** SPY/QQQ/IWM options chain proxy (score: 70.0)
+- ✅ **Market sentiment (Fund Flows):** DataHub.io ICI monthly data (score: 30.0)
+- ⏳ **Market sentiment (AAII):** Implemented but requires premium Nasdaq Data Link subscription
 
 **Current Database:**
 - 15 active stocks across 7 sectors
@@ -45,42 +48,18 @@
 - Price data table: 3,766 records (2025-02-12 to 2026-02-12)
 - Fundamental data table: 15 records ✅
 - Technical indicators table: 15 records ✅
-- **Sentiment data table: 15 records (NEWLY POPULATED)** ✅
+- Sentiment data table: 15 records ✅
+- Market sentiment table: 1 record (3/4 indicators operational) ✅
 
 ---
 
-## 🎯 Next Session: Phase 2 - Complete Market Sentiment OR Historical Data Extension
+## 🎯 Next Session: Phase 2 - Historical Data Extension & Remaining Tasks
 
-**Primary Objective:** Choose between completing market sentiment indicators OR extending historical data
+**Primary Objective:** Extend historical price data and complete remaining Phase 2 items
 
-**Framework Sections:** 5.1 (Market Sentiment), 4.2 (Technical Momentum)
+**Framework Sections:** 4.2 (Technical Momentum), 5.1 (Market Sentiment)
 
-### Phase 2 Remaining Tasks (Choose Priority)
-
-**Option A: Complete Market Sentiment Data (3 indicators remaining)**
-
-1. **AAII Sentiment Survey** - MEDIUM PRIORITY
-   - Currently: Returns neutral 50.0 (placeholder)
-   - Need: Quandl API integration OR web scraping from AAII.com
-   - Framework: Section 5.1 (contrarian indicator, 8-week MA spread)
-   - Impact: Moderate increase in sentiment score variation
-   - Effort: 1-2 hours (API setup + implementation)
-
-2. **Put/Call Ratio** - MEDIUM PRIORITY
-   - Currently: Returns neutral 50.0 (placeholder)
-   - Need: CBOE website scraping OR MacroMicro API
-   - Framework: Section 5.1 (contrarian indicator, 10-day MA)
-   - Impact: Moderate increase in sentiment score variation
-   - Effort: 1-2 hours (scraping setup + implementation)
-
-3. **Equity Fund Flows** - LOW PRIORITY
-   - Currently: Returns neutral 50.0 (placeholder)
-   - Need: ICI website OR GitHub dataset
-   - Framework: Section 5.1 (directional indicator, z-score based)
-   - Impact: Moderate increase in sentiment score variation
-   - Effort: 2-3 hours (data source setup + implementation)
-
-**Option B: Historical Data Extension (Higher Impact)**
+### Phase 2 Remaining Tasks
 
 1. **Historical Data Extension** - HIGH PRIORITY (RECOMMENDED)
    - Issue: momentum_12_1 is None for all stocks (requires 13 months of data)
@@ -91,31 +70,27 @@
    - Files to modify: `scripts/collect_price_data.py`
    - Effort: 30 minutes
 
-3. **Sector Return Calculations** - LOW PRIORITY
+2. **Sector Return Calculations** - MEDIUM PRIORITY
    - Issue: sector_relative_6m is None for all stocks
    - Current: Relative strength component skipped
    - Solution: Calculate sector-level returns and relative performance
    - Impact: Relative strength vs sector component will become operational
    - Files to create: `scripts/calculate_sector_returns.py`
 
-**Testing & Validation:**
-
-4. **Unit Tests for Composite Calculator** - HIGH PRIORITY ✅ COMPLETE
-   - ✅ Created comprehensive unit tests for `src/models/composite.py` (62 tests)
-   - ✅ Tested percentile ranking edge cases (9 tests)
-   - ✅ Tested recommendation threshold boundaries (15 tests)
-   - ✅ Tested signal agreement calculations (9 tests)
-   - ✅ All tests passing (164 total project tests)
-
-5. **Add Signal Agreement to Reports** - LOW PRIORITY
+3. **Add Signal Agreement to Reports** - LOW PRIORITY
    - Framework Section 7.3: Signal agreement for conviction assessment
    - Calculate agreement % across all sub-signals
    - Display conviction level (High/Medium/Low) in reports
 
-6. **Database Optimization** - LOW PRIORITY
+4. **Database Optimization** - LOW PRIORITY
    - Add indexes on frequently queried columns
    - Consider adding calculated_at timestamps for cache invalidation
    - Add composite_scores table to persist results
+
+5. **AAII Sentiment (Optional)** - LOW PRIORITY
+   - Requires premium Nasdaq Data Link subscription ($49/month or $499/year)
+   - Code already implemented; just needs valid API key
+   - System works well with 3/4 indicators (VIX, Put/Call, Fund Flows)
 
 ### Phase 1 Success Criteria - ALL COMPLETE ✅
 - ✅ 1 year of price history stored for all 15 stocks
@@ -135,10 +110,11 @@
 
 ### Phase 2 Success Criteria
 - ✅ Technical scores using real calculated indicators (range: 0.0-95.24)
-- ✅ Sentiment scores using real stock + market data (range: 45.7-54.7)
-- ⏳ Market-wide sentiment data collected (1/4 indicators: VIX operational)
+- ✅ Sentiment scores using real stock + market data (range: 46.0-55.0)
+- ✅ Market-wide sentiment data collected (3/4 indicators operational)
 - [ ] Historical data extended to 18-24 months for momentum calculations
-- ✅ Composite score unit tests created and passing (62 tests, 164 total)
+- ✅ Composite score unit tests created and passing (62 tests)
+- ✅ Market sentiment unit tests created and passing (33 tests)
 - ✅ Full end-to-end test with all three pillars producing real scores
 - [ ] Integration tests with edge cases and error handling
 
@@ -188,8 +164,9 @@ tests/
 ├── test_validators.py            ✅ 14/14 passing
 ├── test_data_collection.py       ✅ 8/8 passing (7 skipped)
 ├── test_percentile.py            ✅ 36/36 passing
-├── test_sentiment.py             ✅ 38/38 passing
-├── test_composite.py             ✅ 62/62 passing (NEW - comprehensive unit tests)
+├── test_sentiment.py             ✅ 39/39 passing (updated market sentiment tests)
+├── test_composite.py             ✅ 62/62 passing
+├── test_market_sentiment.py      ✅ 33/33 passing (NEW - all 4 indicator scoring tests)
 ├── test_fundamental.py           ⏳ Phase 2 (unit tests for fundamental.py)
 └── test_technical.py             ⏳ Phase 2 (unit tests for technical.py)
 ```
@@ -197,13 +174,14 @@ tests/
 ### Current Environment
 - **Database:** PostgreSQL, stock_analysis
   - 15 stocks loaded
-  - 3,766 price records (1 year × 15 stocks)
+  - 3,766 price records (1 year x 15 stocks)
   - 15 fundamental records
   - 15 technical indicator records
   - 15 sentiment data records
-- **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min)
+  - 1 market sentiment record (3/4 indicators)
+- **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min), DataHub.io (free)
 - **Python:** 3.12.9
-- **Tests:** pytest (164/164 passing, 7 skipped)
+- **Tests:** pytest (190/190 passing, 7 skipped in data_collection)
 
 ### Important Reminders
 1. **Always use percentile ranking** - never linear 0-100 scaling
@@ -215,7 +193,7 @@ tests/
 
 ---
 
-## ⚠️ Known Limitations
+## Known Limitations
 
 1. **momentum_12_1 is None for all stocks**
    - Root cause: Requires 13 months of data, only have 12 months
@@ -229,29 +207,24 @@ tests/
    - Status: Technical scores still valid using other 5 components
    - Fix: Implement sector return calculations
 
-3. **Market-wide sentiment defaults to 50.0**
-   - Root cause: VIX, AAII, Put/Call data not yet collected
-   - Impact: Sentiment pillar uses only stock-specific (60% instead of 100%)
-   - Status: Sentiment scores still valid but less variation
-   - Fix: Implement market sentiment data collection
+3. **AAII sentiment data unavailable (premium API)**
+   - Root cause: Nasdaq Data Link AAII dataset requires premium subscription
+   - Impact: Market sentiment uses 3/4 indicators (VIX, Put/Call, Fund Flows)
+   - Status: System works well with 3 indicators; composite degrades gracefully
+   - Fix: Upgrade Nasdaq Data Link subscription or find alternative free source
+
+4. **Fund flows data lags ~2 months**
+   - Root cause: ICI dataset on DataHub.io updates monthly with delay
+   - Impact: Fund flows score reflects conditions from ~2 months ago
+   - Status: Still provides useful contrarian signal
+   - Fix: Could supplement with more frequent proxy data if needed
 
 ---
 
-**Phase 1 Progress: 100% COMPLETE ✅**
-**Phase 2 Progress: 67% COMPLETE (4/6 tasks)**
+**Phase 1 Progress: 100% COMPLETE**
+**Phase 2 Progress: 83% COMPLETE (5/6 tasks)**
 
 **Recommendation:** Extend historical price data (highest impact, 30 min)
-**Alternative:** Complete remaining market sentiment indicators (3-6 hours)
-
-**Phase 1 Achievements:**
-1. ✅ Data infrastructure (price, fundamental, technical, sentiment)
-2. ✅ Percentile ranking engine (36 tests passing)
-3. ✅ Fundamental calculator (scores: 32.1 to 64.8)
-4. ✅ Technical calculator (scores: 0.0 to 95.24)
-5. ✅ Sentiment calculator (scores: 45.5 to 54.5)
-6. ✅ Composite score calculator (45/35/20 weights)
-7. ✅ Integration testing (all 15 stocks)
-8. ✅ Recommendation generation (STRONG BUY to STRONG SELL)
 
 **Phase 2 Achievements:**
 1. ✅ Technical calculator field mapping fixed
@@ -259,9 +232,13 @@ tests/
 3. ✅ All three pillars producing real, varied scores
 4. ✅ End-to-end scoring operational
 5. ✅ Composite calculator unit tests (62 tests, all passing)
-6. ✅ Market sentiment infrastructure complete (VIX operational)
+6. ✅ Market sentiment: VIX z-score operational (score: 53.49)
+7. ✅ Market sentiment: Put/Call ratio operational (score: 70.0)
+8. ✅ Market sentiment: Fund Flows operational (score: 30.0)
+9. ✅ Market sentiment unit tests (33 tests, all passing)
+10. ✅ Total project tests: 190 passing
 
 **Phase 2 Remaining:**
-- Option A: Complete market sentiment (AAII, Put/Call, Fund Flows)
-- Option B: Extend historical data to 18-24 months (RECOMMENDED)
+- Extend historical data to 18-24 months (enables momentum_12_1)
 - Add integration tests with edge cases
+- (Optional) AAII sentiment via premium Nasdaq Data Link
