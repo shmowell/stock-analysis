@@ -6,11 +6,58 @@ This is a **Stock Recommendation Framework v2.0** implementation that combines e
 
 **Core Philosophy**: Your edge comes from identifying when markets overreact or underreact to information. The framework quantifies this systematically while preserving the ability to override when you see something the models don't.
 
-## Primary Reference Document
+## Primary Reference Documents
 
-The complete specification is in: `Stock_Recommendation_Framework_v2_Research_Enhanced.md`
+**Specification:** `Stock_Recommendation_Framework_v2_Research_Enhanced.md`
+- Complete technical specification
+- Research citations and methodology
+- Read relevant section BEFORE implementing any feature
 
-**CRITICAL**: Before implementing ANY feature, read the relevant section of the framework document. This is SPEC-DRIVEN development - the specification comes first, implementation second.
+**Session Status:** `docs/SESSION_STATUS.md`
+- Current project state and progress
+- Next session goals and tasks
+- **UPDATE THIS AT THE END OF EACH SESSION**
+
+**CRITICAL**: This is SPEC-DRIVEN development - the specification comes first, implementation second.
+
+## Session Workflow
+
+### Starting a Session
+1. Read `docs/SESSION_STATUS.md` to understand current state
+2. Review "Next Session Goals" section
+3. Check "Completed Setup" checklist
+4. Begin work on planned tasks
+
+### During a Session
+- Follow development principles below
+- Reference framework document for implementation details
+- Write tests first (TDD)
+- Document decisions in code comments
+
+### Ending a Session
+**MANDATORY: Update `docs/SESSION_STATUS.md` before closing**
+
+Update the following sections:
+1. ✅ **Completed Setup** - Mark new items complete
+2. 📋 **Next Session Goals** - Define what comes next
+3. 🎯 **Current Environment** - Note any new tools/changes
+4. ⚠️ **Known Issues / Notes** - Document blockers or decisions
+
+Template for end-of-session update:
+```markdown
+## Completed This Session
+- [ ] Item 1
+- [ ] Item 2
+
+## Ready for Next Session
+Primary Objective: [Next major goal]
+Tasks: [Specific actionable items]
+
+## Blockers/Decisions
+[Any open questions or issues]
+```
+
+**Commit and push SESSION_STATUS.md** after updating.
 
 ## Architecture Principles
 
@@ -452,6 +499,7 @@ A feature is "done" when:
 
 ## Development Workflow
 
+### During Development
 1. Read relevant framework section
 2. Design implementation approach
 3. Write tests first (TDD)
@@ -460,4 +508,48 @@ A feature is "done" when:
 6. Document and commit
 7. Update this CLAUDE.md if needed
 
+### End-of-Session Checklist
+
+**MANDATORY before ending any work session:**
+
+- [ ] **Update `docs/SESSION_STATUS.md`**
+  - Mark completed tasks as ✅
+  - Update "Completed This Session" section
+  - Define "Next Session Goals"
+  - Document any blockers or decisions
+
+- [ ] **Commit all changes**
+  - Stage all modified files
+  - Write clear commit message
+  - Reference framework sections if applicable
+
+- [ ] **Push to GitHub**
+  - Verify all commits pushed
+  - Check GitHub for successful push
+
+- [ ] **Update environment notes**
+  - Document any new dependencies added
+  - Note any configuration changes
+  - Record any issues encountered
+
+**SESSION_STATUS.md Template:**
+```markdown
+## Completed This Session (YYYY-MM-DD)
+- [x] Task completed
+- [x] Another task completed
+
+## Blockers/Decisions
+- [Issue or decision made]
+
+## Next Session Goals
+Primary Objective: [What to accomplish next]
+Tasks:
+1. [Specific task]
+2. [Specific task]
+```
+
 **Remember**: The framework is the specification. Code is the implementation. When in doubt, refer to the spec.
+
+---
+
+*Last Updated: Review and update SESSION_STATUS.md at the end of EVERY session.*
