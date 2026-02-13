@@ -15,7 +15,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import logging
 
-from src.calculators.percentile import (
+from .percentile import (
     percentile_rank,
     percentile_rank_inverted,
     average_percentile_ranks

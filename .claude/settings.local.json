@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/calculate_technical_indicators.py:*)"
+    ]
+  }
+}

@@ -10,7 +10,7 @@ Contains scoring calculators for all three pillars:
 All calculators use percentile ranking (Section 1.2)
 """
 
-from src.calculators.percentile import (
+from .percentile import (
     percentile_rank,
     percentile_rank_inverted,
     rank_universe,

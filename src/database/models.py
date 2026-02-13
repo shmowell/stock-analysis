@@ -9,7 +9,7 @@ from sqlalchemy import (
     Integer, BigInteger, ForeignKey
 )
 from sqlalchemy.sql import func
-from src.database import Base
+from . import Base
 
 
 class Stock(Base):
@@ -123,32 +123,35 @@ class TechnicalIndicator(Base):
 
     id = Column(Integer, primary_key=True)
     ticker = Column(String(10), ForeignKey('stocks.ticker'), nullable=False)
-    date = Column(Date, nullable=False)
+    calculation_date = Column(Date, nullable=False)
 
     # Moving Averages
-    ma_50 = Column(Numeric(10, 2))
-    ma_200 = Column(Numeric(10, 2))
-    mad = Column(Numeric(10, 4))  # Moving Average Distance
+    sma_20 = Column(Numeric(10, 2))
+    sma_50 = Column(Numeric(10, 2))
+    sma_200 = Column(Numeric(10, 2))
+    mad = Column(Numeric(10, 6))  # Moving Average Distance
+    price_vs_200ma = Column(Boolean)  # Price above/below 200-day MA
 
     # Indicators
-    rsi = Column(Numeric(5, 2))
-    adx = Column(Numeric(5, 2))
+    rsi_14 = Column(Numeric(10, 2))
+    adx = Column(Numeric(10, 2))
 
     # Volume
     avg_volume_20d = Column(BigInteger)
     avg_volume_90d = Column(BigInteger)
+    relative_volume = Column(Numeric(10, 4))
 
-    # Returns
-    return_1_month = Column(Numeric(10, 4))
-    return_3_month = Column(Numeric(10, 4))
-    return_6_month = Column(Numeric(10, 4))
-    return_12_1_month = Column(Numeric(10, 4))  # Momentum return
+    # Returns (Momentum)
+    momentum_1m = Column(Numeric(10, 6))
+    momentum_3m = Column(Numeric(10, 6))
+    momentum_6m = Column(Numeric(10, 6))
+    momentum_12_1 = Column(Numeric(10, 6))  # 12-1 month momentum
+    sector_relative_6m = Column(Numeric(10, 6))
 
-    data_source = Column(String(50))
     created_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
-        return f"<TechnicalIndicator(ticker='{self.ticker}', date='{self.date}')>"
+        return f"<TechnicalIndicator(ticker='{self.ticker}', date='{self.calculation_date}')>"
 
 
 class SentimentData(Base):

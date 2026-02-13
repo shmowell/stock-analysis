@@ -1,0 +1,25 @@
+[32m2026-02-12 22:43:17.522[0m | [31m[1mERROR   [0m | [36mdatabase[0m:[36mget_db_session[0m:[36m78[0m - [31m[1mDatabase error: 'SentimentData' object has no attribute 'recommendation'[0m
+Traceback (most recent call last):
+  File "C:\Users\Will Powell\stock-analysis\scripts\calculate_scores.py", line 353, in main
+    data = load_all_data(session)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Will Powell\stock-analysis\scripts\calculate_scores.py", line 103, in load_all_data
+    'recommendation': float(sd.recommendation) if sd.recommendation else None,
+                                                  ^^^^^^^^^^^^^^^^^
+AttributeError: 'SentimentData' object has no attribute 'recommendation'
+====================================================================================================
+COMPOSITE SCORE INTEGRATION TEST
+====================================================================================================
+
+This script performs end-to-end calculation:
+  1. Load fundamental, technical, sentiment data from database
+  2. Calculate pillar scores for all stocks
+  3. Calculate composite scores and generate recommendations
+  4. Validate results
+
+Loading data from database...
+  Loaded 15 active stocks
+  Loaded 15 fundamental records
+  Loaded 15 technical records
+
+ERROR: 'SentimentData' object has no attribute 'recommendation'
