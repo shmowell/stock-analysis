@@ -25,7 +25,7 @@ sys.path.insert(0, str(project_root / "src"))
 
 from sqlalchemy.orm import Session
 from database import get_db_session
-from database.models import Stock, FundamentalData, TechnicalIndicator, SentimentData, PriceData
+from database.models import Stock, FundamentalData, TechnicalIndicator, SentimentData, PriceData, MarketSentiment
 from calculators.fundamental import FundamentalCalculator
 from calculators.technical import TechnicalCalculator
 from calculators.sentiment import SentimentCalculator
@@ -146,13 +146,38 @@ def load_all_data(session: Session) -> Dict:
         if ticker in sentiment_data and ticker in market_caps:
             sentiment_data[ticker]['market_cap'] = market_caps[ticker]
 
+    # Load latest market sentiment (market-wide indicators)
+    market_sentiment_record = (
+        session.query(MarketSentiment)
+        .order_by(MarketSentiment.date.desc())
+        .first()
+    )
+    market_sentiment = None
+    if market_sentiment_record:
+        market_sentiment = {
+            'date': market_sentiment_record.date,
+            'market_sentiment_score': float(market_sentiment_record.market_sentiment_score),
+            'num_indicators_available': int(market_sentiment_record.num_indicators_available),
+            'vix_score': float(market_sentiment_record.vix_score) if market_sentiment_record.vix_score else None,
+            'aaii_score': float(market_sentiment_record.aaii_score) if market_sentiment_record.aaii_score else None,
+            'putcall_score': float(market_sentiment_record.putcall_score) if market_sentiment_record.putcall_score else None,
+            'fund_flows_score': float(market_sentiment_record.fund_flows_score) if market_sentiment_record.fund_flows_score else None,
+        }
+        print(f"  Loaded market sentiment data for {market_sentiment_record.date}")
+        print(f"    Market sentiment score: {market_sentiment['market_sentiment_score']:.2f} "
+              f"(from {market_sentiment['num_indicators_available']} indicators)")
+    else:
+        print("  WARNING: No market sentiment data found in database")
+        print("  Run: python scripts/collect_market_sentiment.py")
+
     return {
         'tickers': tickers,
         'fundamental_data': fundamental_data,
         'technical_data': technical_data,
         'sentiment_data': sentiment_data,
         'latest_prices': latest_prices,
-        'market_caps': market_caps
+        'market_caps': market_caps,
+        'market_sentiment': market_sentiment
     }
 
 
@@ -364,7 +389,7 @@ def calculate_pillar_scores(data: Dict) -> Dict[str, Dict[str, float]]:
             sent_score = sentiment_calc.calculate_sentiment_score(
                 sent_stock_data[ticker],
                 current_price,
-                market_data=None  # Market-wide sentiment not yet implemented
+                market_data=data['market_sentiment']  # Pass market-wide sentiment
             )
         else:
             sent_score = 50.0

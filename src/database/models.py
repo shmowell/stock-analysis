@@ -193,6 +193,54 @@ class SentimentData(Base):
         return f"<SentimentData(ticker='{self.ticker}', date='{self.data_date}')>"
 
 
+class MarketSentiment(Base):
+    """
+    Market-wide sentiment indicators.
+
+    Framework Section 5.1: Market sentiment (40% of sentiment pillar)
+    Sources: VIX (yfinance), AAII, Put/Call ratio (CBOE), Fund Flows (ICI)
+    """
+    __tablename__ = 'market_sentiment'
+
+    id = Column(Integer, primary_key=True)
+    date = Column(Date, nullable=False, unique=True, index=True)
+
+    # VIX data (Fear gauge - contrarian)
+    vix_value = Column(Numeric(10, 2))
+    vix_mean_1y = Column(Numeric(10, 2))
+    vix_std_1y = Column(Numeric(10, 2))
+    vix_zscore = Column(Numeric(10, 4))
+    vix_score = Column(Numeric(5, 2))  # 0-100 score
+
+    # AAII sentiment (Bulls/Bears - contrarian)
+    aaii_bulls = Column(Numeric(5, 2))  # Percentage
+    aaii_bears = Column(Numeric(5, 2))  # Percentage
+    aaii_neutral = Column(Numeric(5, 2))  # Percentage
+    aaii_spread_8w = Column(Numeric(5, 2))  # 8-week MA: Bears - Bulls
+    aaii_score = Column(Numeric(5, 2))  # 0-100 score
+
+    # Put/Call ratio (Options sentiment - contrarian)
+    putcall_ratio = Column(Numeric(10, 4))
+    putcall_ma_10d = Column(Numeric(10, 4))  # 10-day moving average
+    putcall_score = Column(Numeric(5, 2))  # 0-100 score
+
+    # Fund flows (Equity fund flows - directional)
+    fund_flows_billions = Column(Numeric(10, 2))  # Weekly flows in billions
+    fund_flows_zscore = Column(Numeric(10, 4))
+    fund_flows_score = Column(Numeric(5, 2))  # 0-100 score
+
+    # Composite market sentiment
+    market_sentiment_score = Column(Numeric(5, 2))  # Average of 4 indicators
+    num_indicators_available = Column(Integer)  # Track data quality
+
+    data_source = Column(String(100))  # Comma-separated sources
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<MarketSentiment(date='{self.date}', score={self.market_sentiment_score})>"
+
+
 class StockScore(Base):
     """
     Calculated percentile scores.

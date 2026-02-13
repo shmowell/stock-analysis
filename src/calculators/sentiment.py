@@ -332,29 +332,32 @@ class SentimentCalculator:
         3. Put/Call Ratio (contrarian)
         4. Equity Fund Flows (directional)
 
-        Note: For MVP, market sentiment data collection is not yet implemented.
-        This method returns a neutral score (50) as a placeholder.
-
-        TODO: Implement market sentiment data collection and scoring in future phase.
+        The market_sentiment_score is pre-calculated by collect_market_sentiment.py
+        and stored in the market_sentiment table. This method retrieves that score.
 
         Args:
-            market_data: Dict containing market sentiment indicators (optional)
+            market_data: Dict containing 'market_sentiment_score' from database
 
         Returns:
-            Market sentiment score (0-100), currently returns 50 (neutral)
+            Market sentiment score (0-100)
         """
-        if market_data is None:
-            self.logger.debug("Market sentiment not implemented, using neutral score 50")
+        if market_data is None or 'market_sentiment_score' not in market_data:
+            self.logger.debug("Market sentiment data not provided, using neutral score 50")
             return 50.0
 
-        # TODO: Implement market sentiment scoring
-        # This will require:
-        # 1. VIX data and z-score calculation
-        # 2. AAII sentiment data
-        # 3. Put/Call ratio data
-        # 4. Equity fund flow data
+        market_score = market_data['market_sentiment_score']
 
-        return 50.0
+        # Validate score is in valid range
+        if not 0 <= market_score <= 100:
+            self.logger.warning(f"Market sentiment score {market_score} out of range, capping")
+            market_score = max(0.0, min(100.0, market_score))
+
+        self.logger.info(
+            f"Market sentiment: {market_score:.1f} "
+            f"(from {market_data.get('num_indicators_available', '?')} indicators)"
+        )
+
+        return market_score
 
     def calculate_sentiment_score(
         self,

@@ -177,38 +177,47 @@ CREATE INDEX IF NOT EXISTS idx_sentiment_ticker_date ON sentiment_data(ticker, d
 -- ============================================================
 -- 6. MARKET SENTIMENT (Broader Market Indicators)
 -- ============================================================
+-- Framework Section 5.1: Market sentiment (40% of sentiment pillar)
+-- Sources: VIX (yfinance), AAII, Put/Call ratio (CBOE), Fund Flows (ICI)
 
 CREATE TABLE IF NOT EXISTS market_sentiment (
     id SERIAL PRIMARY KEY,
-    data_date DATE NOT NULL UNIQUE,
+    date DATE NOT NULL UNIQUE,
 
-    -- VIX
-    vix_level DECIMAL(10, 2),
+    -- VIX data (Fear gauge - contrarian)
+    vix_value DECIMAL(10, 2),
+    vix_mean_1y DECIMAL(10, 2),
+    vix_std_1y DECIMAL(10, 2),
     vix_zscore DECIMAL(10, 4),
+    vix_score DECIMAL(5, 2), -- 0-100 score
 
-    -- AAII Sentiment
-    aaii_bull_pct DECIMAL(5, 2),
-    aaii_bear_pct DECIMAL(5, 2),
-    aaii_neutral_pct DECIMAL(5, 2),
-    aaii_bear_bull_spread DECIMAL(5, 2),
-    aaii_8week_ma DECIMAL(5, 2),
+    -- AAII sentiment (Bulls/Bears - contrarian)
+    aaii_bulls DECIMAL(5, 2), -- Percentage
+    aaii_bears DECIMAL(5, 2), -- Percentage
+    aaii_neutral DECIMAL(5, 2), -- Percentage
+    aaii_spread_8w DECIMAL(5, 2), -- 8-week MA: Bears - Bulls
+    aaii_score DECIMAL(5, 2), -- 0-100 score
 
-    -- Put/Call Ratio
-    put_call_ratio DECIMAL(10, 4),
-    put_call_10d_ma DECIMAL(10, 4),
+    -- Put/Call ratio (Options sentiment - contrarian)
+    putcall_ratio DECIMAL(10, 4),
+    putcall_ma_10d DECIMAL(10, 4), -- 10-day moving average
+    putcall_score DECIMAL(5, 2), -- 0-100 score
 
-    -- Fund Flows
-    equity_fund_flow DECIMAL(15, 2), -- Weekly, in millions
-    fund_flow_category VARCHAR(20), -- 'strong_inflow', 'neutral', 'strong_outflow'
+    -- Fund flows (Equity fund flows - directional)
+    fund_flows_billions DECIMAL(10, 2), -- Weekly flows in billions
+    fund_flows_zscore DECIMAL(10, 4),
+    fund_flows_score DECIMAL(5, 2), -- 0-100 score
 
-    -- Market Context
-    sp500_pe_ratio DECIMAL(10, 2),
-    treasury_10y_yield DECIMAL(5, 4),
+    -- Composite market sentiment
+    market_sentiment_score DECIMAL(5, 2), -- Average of 4 indicators
+    num_indicators_available INTEGER, -- Track data quality
 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    data_source VARCHAR(100), -- Comma-separated sources
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_market_sentiment_date ON market_sentiment(data_date DESC);
+CREATE INDEX IF NOT EXISTS idx_market_sentiment_date ON market_sentiment(date DESC);
 
 -- ============================================================
 -- 7. STOCK SCORES (Calculated Percentiles)
