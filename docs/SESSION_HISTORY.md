@@ -4,7 +4,57 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
-## Session 2026-02-13: Phase 2 - Composite Calculator Unit Tests ✅
+## Session 2026-02-13 (Part 2): Phase 2 - Market Sentiment Data Research 🔍
+
+### Completed Tasks
+
+**Market Sentiment Data Source Research:**
+- ✅ Researched data sources for all 4 market sentiment indicators (Framework Section 5.1)
+- ✅ Identified VIX as easiest to implement (yfinance, ticker ^VIX, free, historical since 1990)
+- ✅ Identified AAII sentiment via Quandl API or web scraping (www.aaii.com/sentimentsurvey/sent_results)
+- ✅ Identified Put/Call ratio from CBOE website (requires web scraping or manual download)
+- ✅ Identified Fund Flows from ICI (www.ici.org/research/stats/flows, weekly frequency)
+- ✅ Documented phased implementation approach (Options A/B/C)
+- ✅ User selected Option B (Full Implementation - all 4 indicators)
+
+**Data Source Summary:**
+1. **VIX Z-Score** - ✅ EASY (Yahoo Finance via yfinance, ticker ^VIX)
+2. **AAII Sentiment** - ⚠️ MODERATE (Quandl API requires free key, or scrape AAII website)
+3. **Put/Call Ratio** - ⚠️ MODERATE (CBOE website, web scraping required)
+4. **Equity Fund Flows** - ⚠️ COMPLEX (ICI website or GitHub dataset, weekly data only)
+
+**Framework Specification (Section 5.1):**
+- VIX z-score formula: Z = (Current VIX - 1yr mean) / 1yr std, Score = 50 + (Z × 15), cap 0-100
+- AAII Bear-Bull spread: 8-week MA, contrarian scoring (spread >20 = 75, <-20 = 25)
+- Put/Call ratio: 10-day MA, contrarian (>1.0 = 70, <0.6 = 30)
+- Fund Flows: Directional (inflows = 30 bearish, outflows = 70 bullish)
+- Market Sentiment = Average of 4 scores (40% of sentiment pillar)
+
+**Technical Decisions:**
+- Recommended phased approach: Start VIX (easy win) vs. Full Implementation (all 4)
+- User chose Option B: Full implementation of all 4 indicators
+- Deferred actual implementation to next session (fresh context)
+- Will require: database table, data collection scripts, scoring logic, integration testing
+
+**Next Session Handoff:**
+Task: Implement Market-Wide Sentiment Data Collection (Phase 2 - MEDIUM PRIORITY)
+Steps:
+1. Create MarketSentiment database table/model
+2. Implement VIX z-score collection and calculation
+3. Implement AAII sentiment data collection (Quandl or scraping)
+4. Implement Put/Call ratio collection (CBOE scraping)
+5. Implement equity fund flows collection (ICI data)
+6. Update sentiment calculator with scoring logic for all 4 indicators
+7. Test end-to-end integration with calculate_scores.py
+8. Verify sentiment scores show increased variation (currently 45.5-54.5)
+
+Expected Outcome: Market sentiment defaults from 50.0 → real scores varying based on market conditions
+
+**Git Commit:** (none - research phase only)
+
+---
+
+## Session 2026-02-13 (Part 1): Phase 2 - Composite Calculator Unit Tests ✅
 
 ### Completed Tasks
 
