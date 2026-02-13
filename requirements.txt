@@ -10,6 +10,11 @@ python-dotenv>=1.0.0      # Environment variable management
 pandas>=2.0.0             # Data manipulation
 numpy>=1.24.0             # Numerical computing
 
+# Database - PostgreSQL
+psycopg2-binary>=2.9.9    # PostgreSQL adapter
+sqlalchemy>=2.0.0         # SQL toolkit and ORM
+alembic>=1.12.0           # Database migrations
+
 # Configuration
 pyyaml>=6.0               # YAML configuration files
 
