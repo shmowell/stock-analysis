@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-13 (composite calculator unit tests complete)
-**Current Phase:** Phase 2 - In Progress (3/5 high-priority tasks complete)
-**Status:** All three pillar calculators integrated with comprehensive unit tests
+**Last Updated:** 2026-02-13 (market sentiment VIX implementation complete)
+**Current Phase:** Phase 2 - In Progress (4/6 tasks complete)
+**Status:** Market sentiment partially operational (VIX working, 3 indicators pending)
 
 > 📖 **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -29,14 +29,15 @@
 - ✅ **Composite score calculator:** Combines all three pillars with 45/35/20 weights
 - ✅ **Integration testing:** Successfully calculated scores for all 15 stocks
 
-### Phase 2 Week 1: Calculator Integration & Data Quality ✅ 3/5 Complete
+### Phase 2 Week 1: Calculator Integration & Data Quality ✅ 4/6 Complete
 - ✅ **Technical calculator field mapping:** All field names aligned with database schema
 - ✅ **Technical scores operational:** Range 0.0-95.24 using real indicators
 - ✅ **Sentiment calculator integration:** Fully integrated with current_price and market_cap
-- ✅ **Sentiment scores operational:** Range 45.5-54.5 using real analyst/insider data
+- ✅ **Sentiment scores operational:** Range 45.7-54.7 using real analyst/insider + market data
 - ✅ **Derived indicators computed:** short_term_uptrend, long_term_uptrend, recommendation_mean
 - ✅ **End-to-end scoring:** All three pillars producing meaningful, varied scores
 - ✅ **Composite calculator unit tests:** 62 comprehensive tests, all passing (164 total project tests)
+- ✅ **Market sentiment (VIX):** VIX z-score collection implemented and integrated (score: 52.23)
 
 **Current Database:**
 - 15 active stocks across 7 sectors
@@ -48,29 +49,47 @@
 
 ---
 
-## 🎯 Next Session: Phase 2 - Remaining Data Quality & Testing
+## 🎯 Next Session: Phase 2 - Complete Market Sentiment OR Historical Data Extension
 
-**Primary Objective:** Complete data quality improvements and add comprehensive testing
+**Primary Objective:** Choose between completing market sentiment indicators OR extending historical data
 
-**Framework Sections:** 5.1 (Market Sentiment), Section 1-7 (Testing)
+**Framework Sections:** 5.1 (Market Sentiment), 4.2 (Technical Momentum)
 
-### Phase 2 Remaining Tasks
+### Phase 2 Remaining Tasks (Choose Priority)
 
-**Data Collection:**
+**Option A: Complete Market Sentiment Data (3 indicators remaining)**
 
-1. **Market-Wide Sentiment Data** - MEDIUM PRIORITY
-   - Currently: Market sentiment defaults to 50.0 (neutral) - only stock-specific working
-   - Need: VIX z-score, AAII sentiment, Put/Call ratio, equity fund flows
-   - Framework: Section 5.1 (40% of sentiment pillar)
-   - Impact: Sentiment scores will have greater variation once implemented
-   - Files to create: `scripts/collect_market_sentiment.py`
+1. **AAII Sentiment Survey** - MEDIUM PRIORITY
+   - Currently: Returns neutral 50.0 (placeholder)
+   - Need: Quandl API integration OR web scraping from AAII.com
+   - Framework: Section 5.1 (contrarian indicator, 8-week MA spread)
+   - Impact: Moderate increase in sentiment score variation
+   - Effort: 1-2 hours (API setup + implementation)
 
-2. **Historical Data Extension** - MEDIUM PRIORITY
+2. **Put/Call Ratio** - MEDIUM PRIORITY
+   - Currently: Returns neutral 50.0 (placeholder)
+   - Need: CBOE website scraping OR MacroMicro API
+   - Framework: Section 5.1 (contrarian indicator, 10-day MA)
+   - Impact: Moderate increase in sentiment score variation
+   - Effort: 1-2 hours (scraping setup + implementation)
+
+3. **Equity Fund Flows** - LOW PRIORITY
+   - Currently: Returns neutral 50.0 (placeholder)
+   - Need: ICI website OR GitHub dataset
+   - Framework: Section 5.1 (directional indicator, z-score based)
+   - Impact: Moderate increase in sentiment score variation
+   - Effort: 2-3 hours (data source setup + implementation)
+
+**Option B: Historical Data Extension (Higher Impact)**
+
+1. **Historical Data Extension** - HIGH PRIORITY (RECOMMENDED)
    - Issue: momentum_12_1 is None for all stocks (requires 13 months of data)
    - Current: Only 12 months of price history
    - Solution: Extend data collection to 18-24 months for momentum calculations
-   - Impact: Cross-sectional momentum component will become operational
+   - Impact: Cross-sectional momentum component operational (35% of technical pillar)
+   - Technical scores will show MUCH greater variation
    - Files to modify: `scripts/collect_price_data.py`
+   - Effort: 30 minutes
 
 3. **Sector Return Calculations** - LOW PRIORITY
    - Issue: sector_relative_6m is None for all stocks
@@ -116,8 +135,8 @@
 
 ### Phase 2 Success Criteria
 - ✅ Technical scores using real calculated indicators (range: 0.0-95.24)
-- ✅ Sentiment scores using real stock data (range: 45.5-54.5)
-- [ ] Market-wide sentiment data collected and integrated
+- ✅ Sentiment scores using real stock + market data (range: 45.7-54.7)
+- ⏳ Market-wide sentiment data collected (1/4 indicators: VIX operational)
 - [ ] Historical data extended to 18-24 months for momentum calculations
 - ✅ Composite score unit tests created and passing (62 tests, 164 total)
 - ✅ Full end-to-end test with all three pillars producing real scores
@@ -219,9 +238,10 @@ tests/
 ---
 
 **Phase 1 Progress: 100% COMPLETE ✅**
-**Phase 2 Progress: 60% COMPLETE (3/5 high-priority tasks)**
+**Phase 2 Progress: 67% COMPLETE (4/6 tasks)**
 
-Next Command: `"Collect market sentiment data"` or `"Extend historical price data to 18-24 months"`
+**Recommendation:** Extend historical price data (highest impact, 30 min)
+**Alternative:** Complete remaining market sentiment indicators (3-6 hours)
 
 **Phase 1 Achievements:**
 1. ✅ Data infrastructure (price, fundamental, technical, sentiment)
@@ -239,8 +259,9 @@ Next Command: `"Collect market sentiment data"` or `"Extend historical price dat
 3. ✅ All three pillars producing real, varied scores
 4. ✅ End-to-end scoring operational
 5. ✅ Composite calculator unit tests (62 tests, all passing)
+6. ✅ Market sentiment infrastructure complete (VIX operational)
 
 **Phase 2 Remaining:**
-- Collect market-wide sentiment data (VIX, AAII, Put/Call)
-- Extend historical data to 18-24 months
+- Option A: Complete market sentiment (AAII, Put/Call, Fund Flows)
+- Option B: Extend historical data to 18-24 months (RECOMMENDED)
 - Add integration tests with edge cases
