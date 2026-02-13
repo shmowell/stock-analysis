@@ -161,25 +161,33 @@ class SentimentData(Base):
 
     id = Column(Integer, primary_key=True)
     ticker = Column(String(10), ForeignKey('stocks.ticker'), nullable=False)
-    date = Column(Date, nullable=False)
+    data_date = Column(Date, nullable=False)
 
     # Analyst Data
-    analyst_target = Column(Numeric(10, 2))
-    analyst_count = Column(Integer)
-    recommendation_mean = Column(Numeric(3, 2))
+    consensus_price_target = Column(Numeric(10, 2))
+    num_buy_ratings = Column(Integer)
+    num_hold_ratings = Column(Integer)
+    num_sell_ratings = Column(Integer)
+    num_analyst_opinions = Column(Integer)
+    upgrades_30d = Column(Integer)
+    downgrades_30d = Column(Integer)
+    estimate_revisions_up_90d = Column(Integer)
+    estimate_revisions_down_90d = Column(Integer)
 
     # Short Interest
-    short_interest = Column(Numeric(10, 4))  # % of float
+    short_interest_pct = Column(Numeric(10, 4))  # % of float
     days_to_cover = Column(Numeric(10, 2))
 
-    # Other
-    insider_net_shares = Column(BigInteger)  # Net insider buying (shares)
+    # Insider Activity
+    insider_buys_6m = Column(Integer)
+    insider_sells_6m = Column(Integer)
+    insider_net_shares_6m = Column(BigInteger)
 
     data_source = Column(String(50))
     created_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
-        return f"<SentimentData(ticker='{self.ticker}', date='{self.date}')>"
+        return f"<SentimentData(ticker='{self.ticker}', date='{self.data_date}')>"
 
 
 class StockScore(Base):
