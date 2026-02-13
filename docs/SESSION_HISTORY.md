@@ -4,6 +4,93 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-13: Phase 2 - Composite Calculator Unit Tests ✅
+
+### Completed Tasks
+
+**Composite Calculator Unit Tests (HIGH PRIORITY):**
+- ✅ Created comprehensive unit test suite for `src/models/composite.py`
+- ✅ 62 tests written covering all major components and edge cases
+- ✅ All tests passing (164 total project tests, up from 102)
+- ✅ Test coverage includes:
+  - Recommendation threshold boundaries (15 tests)
+  - Weight validation and floating point tolerance (9 tests)
+  - Composite score calculation with varied weights (7 tests)
+  - Signal agreement and conviction levels (9 tests)
+  - Percentile ranking edge cases (9 tests)
+  - Universe-wide score calculation (7 tests)
+  - Report generation validation (4 tests)
+  - End-to-end integration workflows (2 tests)
+
+**Files Created:**
+- `tests/test_composite.py` (845 lines)
+  - TestRecommendation class: 15 tests for threshold boundaries
+  - TestCompositeScore class: 3 tests for dataclass functionality
+  - TestCompositeScoreCalculatorInit class: 9 tests for weight validation
+  - TestCalculateCompositeScore class: 7 tests for weighted averages
+  - TestCalculateSignalAgreement class: 9 tests for conviction logic
+  - TestCalculatePercentileRank class: 9 tests for percentile ranking
+  - TestCalculateScoresForUniverse class: 7 tests for full integration
+  - TestGenerateReport class: 4 tests for report formatting
+  - TestCompositeIntegration class: 2 integration tests
+
+**Technical Decisions:**
+
+1. **Boundary Testing Strategy**
+   - Tested all recommendation thresholds at exact boundaries (85, 70, 30, 16, 15)
+   - Tested edge cases just above and below each boundary
+   - Ensures Framework Section 7.2 thresholds are precisely implemented
+
+2. **Weight Validation Testing**
+   - Validated floating point tolerance (0.999 to 1.001)
+   - Tested invalid weight combinations (too high, too low)
+   - Ensures research-backed weights (45/35/20) are enforced
+
+3. **Signal Agreement Logic**
+   - Tested all three conviction levels: High (>75% or <25%), Medium (25-75%), Low (near 50%)
+   - Validated contrarian interpretation (0% agreement = High conviction bearish)
+   - Framework Section 7.3 compliance verified
+
+4. **Percentile Ranking Edge Cases**
+   - Empty universe handling (returns 50.0 neutral)
+   - Single value universe (returns 0.0)
+   - All identical values (returns 0.0)
+   - Duplicate values (correct counting verified)
+
+5. **Integration Testing**
+   - End-to-end workflow from scores to recommendations
+   - Realistic 15-stock universe simulation
+   - Sorting and percentile ordering validation
+
+**Issues Resolved:**
+
+1. **Test Expectation Error**
+   - Issue: Initial test expected 15.9 percentile to be SELL
+   - Root cause: Misunderstanding of threshold (≥16 is SELL, <16 is STRONG SELL)
+   - Solution: Corrected test expectation to match Framework Section 7.2
+   - Result: All 62 tests now passing
+
+**Test Results:**
+```
+Total Tests: 164 passing, 7 skipped
+- test_composite.py: 62 tests ✅ (NEW)
+- test_sentiment.py: 38 tests ✅
+- test_percentile.py: 36 tests ✅
+- test_validators.py: 14 tests ✅
+- test_data_collection.py: 8 tests ✅ (7 skipped - Alpha Vantage)
+- test_rate_limiter.py: 6 tests ✅
+```
+
+**Framework Compliance:**
+- Section 1.3: Base weighting (45/35/20) validated
+- Section 7.1: Composite score calculation tested
+- Section 7.2: Recommendation thresholds validated at all boundaries
+- Section 7.3: Signal agreement and conviction logic tested
+
+**Git Commit:** (pending)
+
+---
+
 ## Session 2026-02-12 (final session): Phase 2 - Calculator Integration & Data Quality Fixes ✅
 
 ### Completed Tasks
