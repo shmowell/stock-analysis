@@ -4,6 +4,147 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-12 (late evening): Phase 1 Week 2 - Technical Calculator ✅
+
+### Completed Tasks
+
+**Technical Indicator Calculation:**
+- ✅ Created `calculate_technical_indicators.py` script (370+ lines)
+- ✅ Implemented custom RSI calculation function (14-period)
+- ✅ Calculated moving averages (20-day, 50-day, 200-day)
+- ✅ Calculated MAD (Moving Average Distance) per Framework Section 4.2
+- ✅ Calculated return periods (1m, 3m, 6m, 12-1m momentum)
+- ✅ Calculated volume averages (20-day, 90-day) and relative volume
+- ✅ Calculated price vs 200-MA boolean indicator
+- ✅ Successfully stored 15 indicator records (100% success rate)
+
+**Technical Calculator Implementation:**
+- ✅ Created `technical.py` calculator with all 6 sub-components (540+ lines)
+- ✅ Implemented cross-sectional momentum (35% weight) - 12-1 month return
+- ✅ Implemented trend strength (25% weight) - Binary + MAD percentile
+- ✅ Implemented volume-qualified momentum (20% weight) - Early/late stage adjustment
+- ✅ Implemented relative strength vs sector (10% weight) - Stock vs sector 6m return
+- ✅ Implemented RSI trend confirmation (5% weight) - Binary above/below 50
+- ✅ Implemented multi-speed trend blend (5% weight) - Short-term + long-term uptrend
+- ✅ All components follow Framework Section 4.2 specifications exactly
+
+**Testing & Validation:**
+- ✅ Created `test_technical_calculator.py` script (260+ lines)
+- ✅ Tested calculator with real data for all 15 stocks
+- ✅ 100% success rate - all 15 technical scores calculated
+- ✅ Verified percentile ranking across universe works correctly
+- ✅ Verified weight normalization when sub-components missing
+
+**Files Created:**
+- `src/calculators/technical.py` (540 lines) - Technical score calculator
+- `scripts/calculate_technical_indicators.py` (370 lines) - Indicator calculation from price data
+- `scripts/test_technical_calculator.py` (260 lines) - Real data validation
+
+**Database Status After Session:**
+- Technical indicators table: 15 records (latest date for each stock)
+- Includes: MA20, MA50, MA200, MAD, RSI-14, volume metrics, returns
+- Ready for: Technical score calculations in production
+
+**Technical Scores (Sample Results):**
+- CAT (Caterpillar): 94.8 - Highest (strong trend, relative strength, multi-speed uptrend)
+- JNJ (Johnson & Johnson): 90.0 - Very strong (high RSI, multi-speed uptrend)
+- WMT (Walmart): 86.7 - Strong (good trend, high RSI)
+- GOOGL (Alphabet): 73.0 - Above average (strong trend, high relative strength)
+- DIS (Disney): 7.0 - Weakest (below 200-MA, low RSI, weak relative strength)
+- MSFT (Microsoft): 3.0 - Very weak (below 200-MA, low RSI, weak sector relative)
+
+**Technical Decisions:**
+
+1. **Database Schema Mismatch:**
+   - Issue: ORM models.py has different column names than actual database schema
+   - Actual schema uses: `calculation_date`, `sma_*`, `momentum_*`, `rsi_14`
+   - ORM model uses: `date`, `ma_*`, `return_*`, `rsi`
+   - Solution: Used raw SQL with `text()` to insert directly into database
+   - Used database_schema.md documentation as source of truth
+   - Rationale: Database was created first, models.py needs to be synced later
+   - Learning: Always verify actual database schema vs ORM definitions
+
+2. **RSI Calculation Implementation:**
+   - Implemented custom RSI(14) calculation using pandas rolling windows
+   - Formula: RS = avg_gain / avg_loss, RSI = 100 - (100 / (1 + RS))
+   - Used standard 14-period lookback as specified in framework
+   - Rationale: Framework Section 4.2 specifies RSI for trend confirmation, not overbought/oversold
+   - Alternative considered: Alpha Vantage API, but chose in-house calculation for consistency
+
+3. **Price Data Requirements:**
+   - 12-1 month momentum requires 252+ trading days of price history
+   - Current data: Only 251-252 days (exactly 1 year)
+   - Result: momentum_12_1 is NULL for all stocks
+   - Impact: Momentum and volume-qualified scores are N/A in calculations
+   - Weights auto-normalize: Remaining components (trend, rel str, RSI, multi-speed) weighted proportionally
+   - Solution for production: Collect 2+ years of price history
+   - Framework allows this: Missing sub-components handled gracefully
+
+4. **Sector Return Calculation:**
+   - Calculate average 6-month return per sector for relative strength metric
+   - Framework Section 4.2: Stock return - sector return = relative strength spread
+   - Ranked across universe for percentile score
+   - Rationale: Cross-sectional comparison vs sector peers
+
+5. **Multi-Speed Trend Signals:**
+   - Short-term: Price > 20-MA AND 20-MA > 50-MA
+   - Long-term: Price > 50-MA AND 50-MA > 200-MA
+   - Both TRUE = 100, One TRUE = 50, None TRUE = 0
+   - Calculated at extraction time from stored MA values and current price
+   - Rationale: Framework Section 4.2 specification for trend confluence
+
+6. **Extract Function Design:**
+   - `extract_technical_metrics_from_db()` transforms database row to calculator input
+   - Handles: None value checking, type conversions, derived calculations
+   - Calculates: multi-speed trends, relative strength spread, price vs MA binary
+   - Returns dict with all metrics needed by calculator
+   - Rationale: Separation of concerns - database access vs calculation logic
+
+**Issues Resolved:**
+
+1. **F-String Format Specifier Error:**
+   - Issue: Can't use ternary operator inside format specifier (`.2f if x else 'N/A'`)
+   - Solution: Calculate formatted string before f-string
+   - Example: `ma200_str = f"{value:.2f}" if value else "N/A"`
+   - Learning: Python f-string limitations with conditional formatting
+
+2. **Column Name Mismatch:**
+   - Issue: Script used `date`, `ma_50`, `return_12_1_month` but database has different names
+   - Detection: "column does not exist" error from PostgreSQL
+   - Solution: Queried database schema, updated script to match actual columns
+   - Learning: Always verify database schema before writing data collection scripts
+
+3. **ORM "Unconsumed column names" Error:**
+   - Issue: SQLAlchemy insert() with column names not in ORM model
+   - Cause: ORM model out of sync with database schema
+   - Solution: Bypassed ORM, used raw SQL with `text()` and parameter binding
+   - Result: Clean INSERT ... ON CONFLICT UPDATE for upsert functionality
+   - Learning: Raw SQL is sometimes cleaner than fighting ORM mismatches
+
+4. **Test Script None Formatting:**
+   - Issue: `.1f` format specifier fails on None values
+   - Cause: Trying to format None as float in f-string
+   - Solution: Created `format_score()` helper to handle None -> "N/A"
+   - Result: Clean display of scores with missing sub-components
+   - Learning: Always handle None explicitly when formatting numbers
+
+**Test Coverage:**
+- Manual testing via `test_technical_calculator.py`
+- All 15 stocks calculated successfully (100% success rate)
+- Verified percentile ranking across universe
+- Verified weight normalization for missing components
+- Next: Create pytest unit tests for technical.py
+
+**Next Session Priorities:**
+1. Sentiment calculator implementation (Framework Section 5)
+2. Unit tests for technical.py
+3. Integration test for all three pillars
+4. Update models.py to match database schema
+
+**Git Commit:** `[to be created]` - "feat: Technical calculator and indicator calculation"
+
+---
+
 ## Session 2026-02-12: Phase 1 Week 1 - Data Infrastructure ✅
 
 ### Completed Tasks
