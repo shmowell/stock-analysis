@@ -1,0 +1,168 @@
+# Stock Analysis Framework Configuration
+# Version: 2.0
+# Last Updated: 2026-02-12
+
+# Base Model Weights
+# Reference: Framework Section 1.3
+# DO NOT change without documented research justification
+weights:
+  fundamental: 0.45  # Range: 0.35-0.55
+  technical: 0.35    # Range: 0.25-0.45
+  sentiment: 0.20    # Range: 0.10-0.30
+
+  # Sub-factor weights within Fundamental
+  fundamental_sub:
+    value: 0.33
+    quality: 0.33
+    growth: 0.34
+
+  # Sub-factor weights within Technical
+  technical_sub:
+    momentum: 0.35
+    trend: 0.25
+    volume_qualified: 0.20
+    relative_strength: 0.10
+    rsi_confirmation: 0.05
+    multi_speed: 0.05
+
+  # Sub-factor weights within Sentiment
+  sentiment_sub:
+    market_sentiment: 0.40
+    stock_sentiment: 0.60
+
+# Recommendation Thresholds (Percentiles)
+# Reference: Framework Section 7.2
+thresholds:
+  strong_buy: 85  # >= 85th percentile
+  buy: 70         # 70th-84th percentile
+  hold_high: 69   # 30th-69th percentile
+  hold_low: 30
+  sell: 15        # 16th-29th percentile
+  strong_sell: 15 # <= 15th percentile
+
+# Override Limits
+# Reference: Framework Section 6.5
+override_limits:
+  weight_adjustment: 0.10      # ±10% per pillar
+  sentiment_adjustment: 15     # ±15 points
+  max_composite_impact: 12     # ±12 percentile points
+  extreme_override_threshold: 15  # Requires high conviction
+
+# Risk Adjustment Rules
+# Reference: Framework Section 7.4
+risk_adjustments:
+  downgrade_conditions:
+    high_beta: 1.5              # Beta > 1.5
+    high_debt: 2.0              # Debt/Equity > 2.0
+    negative_fcf_quarters: 3    # Consecutive quarters
+    low_liquidity: 10000000     # Avg daily volume < $10M
+
+  upgrade_conditions:
+    insider_buying_threshold: 0.05  # >5% of shares
+    high_short_interest: 0.15       # >15% of float
+    consolidation_months: 6         # 6+ month consolidation
+
+# Data Collection Settings
+data_collection:
+  universe_size: 500
+  lookback_periods:
+    price_history: 365          # Days
+    fundamental_data: 4         # Quarters
+    sentiment_data: 180         # Days
+
+  update_frequency:
+    daily: ['price', 'volume', 'technical_indicators']
+    weekly: ['sentiment', 'analyst_data']
+    monthly: ['fundamentals', 'financials']
+
+  retry_settings:
+    max_retries: 3
+    backoff_factor: 2
+    timeout: 30                  # Seconds
+
+# Technical Indicator Parameters
+# Reference: Framework Section 4
+technical_params:
+  moving_averages:
+    short: 50
+    long: 200
+    trend_short: 20
+
+  momentum:
+    lookback_months: 12
+    exclude_recent_month: true  # 12-1 momentum
+
+  rsi:
+    period: 14
+    trend_threshold: 50         # Above 50 = bullish
+
+  volume:
+    low_threshold: 1.2          # Relative volume
+    high_threshold: 1.8
+    volume_period: 90           # Days
+
+# Sentiment Scoring Parameters
+# Reference: Framework Section 5
+sentiment_params:
+  vix:
+    contrarian: true
+    z_score_multiplier: 15
+
+  aaii:
+    contrarian: true
+    extreme_pessimism: 20       # Bear-Bull spread
+    extreme_optimism: -20
+
+  put_call:
+    contrarian: true
+    high_fear: 1.0
+    high_greed: 0.6
+
+  short_interest:
+    days_to_cover_thresholds:
+      low: 3
+      moderate: 5
+      high: 8
+
+  analyst_discount:
+    large_cap_low_vol: 0.05     # 5% discount
+    mid_cap_mod_vol: 0.08       # 8% discount
+    small_cap_high_vol: 0.12    # 12% discount
+
+# Logging Configuration
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+  files:
+    main_log: 'logs/stock_analysis.log'
+    data_collection: 'logs/data_collection.log'
+    calculations: 'logs/calculations.log'
+    overrides: 'logs/overrides/override_log.json'
+
+  rotation:
+    when: 'midnight'
+    interval: 1
+    backup_count: 30
+
+# Performance Tracking
+tracking:
+  review_frequency: 'quarterly'
+  metrics:
+    - override_hit_rate
+    - override_alpha
+    - signal_agreement
+    - data_coverage
+
+  targets:
+    override_hit_rate: 0.55     # >55%
+    override_alpha: 0.0         # >0%
+    max_override_frequency: 0.30  # <30% of stocks
+
+# Development Settings
+development:
+  debug_mode: false
+  cache_api_responses: true
+  cache_duration: 3600          # Seconds
+  validate_calculations: true
+  test_mode: false

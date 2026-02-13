@@ -1,0 +1,32 @@
+# Stock Analysis Framework - Python Dependencies
+# Phase 1: Foundation
+
+# Data Collection
+yfinance>=0.2.28          # Yahoo Finance API
+requests>=2.31.0          # HTTP requests for APIs
+python-dotenv>=1.0.0      # Environment variable management
+
+# Data Processing
+pandas>=2.0.0             # Data manipulation
+numpy>=1.24.0             # Numerical computing
+
+# Configuration
+pyyaml>=6.0               # YAML configuration files
+
+# Logging
+loguru>=0.7.0             # Enhanced logging
+
+# Testing
+pytest>=7.4.0             # Testing framework
+pytest-cov>=4.1.0         # Test coverage
+
+# Code Quality
+black>=23.0.0             # Code formatting
+flake8>=6.0.0             # Linting
+mypy>=1.4.0               # Type checking
+
+# Future Phase Dependencies (commented out until needed)
+# alpha-vantage>=2.3.1    # Alpha Vantage API
+# pandas-ta>=0.3.14       # Technical analysis indicators
+# matplotlib>=3.7.0       # Visualization
+# seaborn>=0.12.0         # Statistical visualization

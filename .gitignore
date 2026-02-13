@@ -1,0 +1,137 @@
+# Stock Analysis Framework - Git Ignore Rules
+
+# Environment Variables (CRITICAL - Never commit API keys)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type Checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Data Files (Don't commit raw data)
+data/raw/*.csv
+data/raw/*.json
+data/raw/*.parquet
+data/processed/*.csv
+data/processed/*.json
+data/processed/*.parquet
+
+# But keep the directory structure
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Logs (Don't commit personal logs)
+logs/*.log
+logs/overrides/*.json
+logs/overrides/*.md
+logs/quarterly_reviews/*.md
+
+# But keep the directory structure
+!logs/.gitkeep
+!logs/overrides/.gitkeep
+!logs/quarterly_reviews/.gitkeep
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache
+.cache/
+*.cache
+
+# OS
+Thumbs.db
+.DS_Store
+*.tmp
+
+# Documentation Build
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Temporary Files
+temp/
+tmp/
+*.bak
+*.backup
+
+# Personal Override Logs (IMPORTANT - Don't share your decisions)
+logs/overrides/personal_*.md
+logs/overrides/override_*.json
+
+# API Response Cache
+cache/
+.cache_api/
+
+# Performance Data
+performance/
+backtest_results/
+
+# Exceptions - Always Commit These
+!.gitkeep
+!templates/**
+!config/settings.yaml
+!.env.example
+!README.md
+!CLAUDE.md
+!requirements.txt
