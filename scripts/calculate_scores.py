@@ -16,7 +16,9 @@ Author: Stock Analysis Framework v2.0
 Date: 2026-02-12
 """
 
+import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 # Add project root to path
@@ -549,6 +551,31 @@ def main():
         print("  [OK] Research-backed weights: 45/35/20 (Section 1.3)")
         print("  [OK] Recommendation thresholds (Section 7.2)")
         print()
+
+        # Step 8: Save latest scores for override system
+        # Framework Section 6: Override system needs base scores to apply overrides
+        scores_output_path = project_root / 'data' / 'processed' / 'latest_scores.json'
+        scores_output_path.parent.mkdir(parents=True, exist_ok=True)
+        scores_data = {
+            'generated_at': str(datetime.now()),
+            'universe_size': len(composite_results),
+            'weights': {'fundamental': 0.45, 'technical': 0.35, 'sentiment': 0.20},
+            'scores': [
+                {
+                    'ticker': r.ticker,
+                    'fundamental_score': r.fundamental_score,
+                    'technical_score': r.technical_score,
+                    'sentiment_score': r.sentiment_score,
+                    'composite_score': r.composite_score,
+                    'composite_percentile': r.composite_percentile,
+                    'recommendation': r.recommendation.value,
+                }
+                for r in composite_results
+            ],
+        }
+        with open(scores_output_path, 'w') as f:
+            json.dump(scores_data, f, indent=2)
+        print(f"[OK] Saved latest scores to {scores_output_path}")
 
     except Exception as e:
         print(f"\nERROR: {e}")

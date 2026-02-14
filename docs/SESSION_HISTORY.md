@@ -4,6 +4,70 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-13 (Part 8): Phase 3 - Override System Testing & Verification ✅
+
+**Completed Tasks:**
+- Ran override test suite: 75/75 tests passing (fixed 1 failure)
+- Verified existing test suite: 259/263 passing (4 Alpha Vantage API rate-limit failures — pre-existing)
+- End-to-end verification: calculate_scores.py → latest_scores.json → apply_override.py → JSON log
+- Fixed file naming collision bug in OverrideLogger (added microsecond precision)
+- Fixed import path in apply_override.py (project root vs src/ on sys.path)
+
+**Files Modified:**
+- `src/overrides/override_logger.py` — timestamp format `%H-%M-%S` → `%H-%M-%S-%f` to prevent filename collisions
+- `scripts/apply_override.py` — changed `sys.path.insert(0, str(project_root / "src"))` to `sys.path.insert(0, str(project_root))`, updated imports to use `src.` prefix
+- `docs/SESSION_STATUS.md` — updated to reflect Phase 3 complete
+- `docs/SESSION_HISTORY.md` — added this session entry
+
+**Bugs Fixed:**
+1. **File naming collision** — Two overrides for the same ticker within the same second would overwrite each other. Added `%f` (microseconds) to filename format.
+2. **Import path mismatch** — `apply_override.py` added `src/` to sys.path but override modules use `from src.` style imports. Changed to add project root instead.
+
+**Test Results:**
+- Override tests: 75/75 passing (9 test classes)
+- Core tests: 259/263 passing (4 Alpha Vantage API failures — rate limiting, pre-existing)
+- Total: 334 tests passing
+
+---
+
+## Session 2026-02-13 (Part 7): Phase 3 - Override System Implementation ✅
+
+**Completed Tasks:**
+- Created `src/overrides/` package with complete override system
+- Implemented override data models (OverrideType, ConvictionLevel, WeightOverride, SentimentOverride, OverrideDocumentation, OverrideRequest, OverrideResult)
+- Implemented OverrideManager with full guardrail enforcement:
+  - Weight adjustment validation (±10% per pillar, sum to 100%)
+  - Sentiment adjustment validation (±15 points, clamped to 0-100)
+  - Mandatory documentation validation (3 required fields)
+  - Impact guardrails (weight ≤10pt, sentiment ≤3pt, combined ≤12pt)
+  - Forbidden override detection (SELL↔BUY requires HIGH conviction)
+  - Extreme override detection (>15pt requires HIGH conviction + 3 evidence pieces)
+- Implemented OverrideLogger with JSON file persistence and statistics
+- Created comprehensive test suite (60+ tests across 9 test classes)
+- Added score-saving to `calculate_scores.py` (writes `data/processed/latest_scores.json`)
+- Created `scripts/apply_override.py` CLI for applying overrides
+
+**Files Created:**
+- `src/overrides/__init__.py` - Package init with re-exports
+- `src/overrides/models.py` - Data models (OverrideType, ConvictionLevel, WeightOverride, SentimentOverride, OverrideDocumentation, OverrideRequest, OverrideResult)
+- `src/overrides/override_manager.py` - Core logic (OverrideManager, OverrideValidationError)
+- `src/overrides/override_logger.py` - JSON persistence (OverrideLogger)
+- `tests/test_override_manager.py` - Comprehensive tests
+- `scripts/apply_override.py` - CLI override script
+
+**Files Modified:**
+- `scripts/calculate_scores.py` - Added json/datetime imports + score-saving step
+
+**Technical Decisions:**
+1. Apply-then-check guardrails: Override is computed, then violations are flagged in the result. Caller decides whether to reject. Simpler and more testable than predict-then-apply.
+2. Separate CLI script for overrides: `apply_override.py` is standalone, not embedded in calculate_scores.py. Cleaner separation.
+3. JSON file logging (not database): Framework spec calls for file-based override logs. DB persistence deferred to later phase.
+4. Config loaded from existing `config/settings.yaml` which already had override_limits section.
+
+**Status:** Code written, NOT YET TESTED. Next session should run pytest and verify end-to-end.
+
+---
+
 ## Session 2026-02-13 (Part 6): FMP API Integration - Analyst Estimates & Stock Grades ✅
 
 ### Completed Tasks
