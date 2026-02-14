@@ -4,6 +4,32 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-13 (Part 9): Phase 4 Planning — Daily Workflow & User Tools ✅
+
+**Completed Tasks:**
+- Explored all existing data collection scripts (10 scripts), their dependencies, execution order, and refresh cadences
+- Explored database schema (11 tables), found `stock_scores` table exists but is unused — perfect for historical score tracking
+- Reviewed framework spec Sections 7-10 for daily workflow guidance
+- Designed and documented implementation plan for 3 user-facing tools:
+  1. `daily_report.py` — single command for daily pre-market analysis
+  2. `manage_universe.py` — add/remove/list stocks
+  3. `review_overrides.py` — override history and statistics
+- Plan includes prerequisite refactoring: extract `ScoringPipeline` from `calculate_scores.py`, build `DataStalenessChecker`
+- Plan approved by user
+
+**Plan file:** `.claude/plans/dynamic-watching-river.md`
+
+**Key Design Decisions:**
+1. Import collector classes directly (not subprocess) — gives error handling control
+2. Smart staleness checks via MAX(date) queries — prevents unnecessary API calls
+3. `stock_scores` table supplements (not replaces) `latest_scores.json` — both persist
+4. Raw SQL for `stock_scores` upsert — ORM model doesn't match full SQL schema
+5. Lazy imports for collector classes — avoids side effects from script-level sys.path changes
+
+**No code written — planning only session.**
+
+---
+
 ## Session 2026-02-13 (Part 8): Phase 3 - Override System Testing & Verification ✅
 
 **Completed Tasks:**

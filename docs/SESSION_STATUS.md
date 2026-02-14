@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-13 (Override system tested and verified)
-**Current Phase:** Phase 3 COMPLETE (Override System)
-**Status:** All three phases complete. Override system tested, verified end-to-end.
+**Last Updated:** 2026-02-13 (Daily workflow tools planned)
+**Current Phase:** Phase 4 — User-Facing Tools (PLANNED)
+**Status:** Phases 1-3 complete. Daily workflow tools designed, ready to implement.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -57,26 +57,41 @@
 
 ---
 
-## Next Session Goals
+## Next Session Goals — Phase 4: User-Facing Tools
 
-**Primary Objective:** Polish and extend — core framework is complete
+**Primary Objective:** Build daily workflow tools per approved plan
 
-### Tasks
+**Plan file:** `.claude/plans/dynamic-watching-river.md`
 
-1. **Signal Agreement / Conviction Display** - MEDIUM PRIORITY
-   - Framework Section 7.3: already implemented in CompositeScoreCalculator
-   - Need to integrate into scoring pipeline (pass sub-signals through)
-   - Display conviction level in reports
+### Implementation Order (sequential)
 
-2. **Integration Tests with Edge Cases** - LOW PRIORITY
-   - Edge cases: missing data, single-stock sectors, outliers
+1. **Step 1: Extract Scoring Pipeline** — `src/scoring/pipeline.py`
+   - Extract reusable `ScoringPipeline` class from `calculate_scores.py`
+   - Add `persist_scores_to_db()` (uses existing `stock_scores` table)
+   - Add `load_previous_scores()` for change comparison
+   - Refactor `calculate_scores.py` to thin wrapper — verify identical output
 
-3. **Database Optimization** - LOW PRIORITY
-   - Add indexes on frequently queried columns
-   - Add composite_scores table to persist results
+2. **Step 2: Data Staleness Checker** — `src/utils/staleness.py`
+   - Query MAX(date) per table, compare against cadences (daily/weekly/monthly)
 
-4. **AAII Sentiment (Optional)** - LOW PRIORITY
-   - Needs premium Nasdaq Data Link subscription
+3. **Step 3: Daily Report** — `scripts/daily_report.py` (PRIMARY TOOL)
+   - Smart data refresh → score → compare → report
+   - Flags: `--skip-refresh`, `--force-refresh`, `--ticker AAPL`
+   - Shows: action items, ranked list, movers, active overrides, data quality
+   - Saves report to `data/reports/daily_YYYY-MM-DD.txt`
+
+4. **Step 4: Universe Manager** — `scripts/manage_universe.py`
+   - `add TSLA META AMD` / `remove DIS` / `list` / `reactivate DIS`
+
+5. **Step 5: Override Reviewer** — `scripts/review_overrides.py`
+   - `list` / `summary` / `detail GOOGL` (wraps existing OverrideLogger)
+
+6. **Step 6: Tests for all new code**
+
+### Deferred Items
+- Signal Agreement / Conviction Display (fold into daily report later)
+- Integration Tests with Edge Cases
+- AAII Sentiment (requires premium API)
 
 ---
 
@@ -126,3 +141,4 @@
 **Phase 1 Progress: 100% COMPLETE**
 **Phase 2 Progress: 100% COMPLETE**
 **Phase 3 Progress: 100% COMPLETE**
+**Phase 4 Progress: PLANNED — ready to implement**
