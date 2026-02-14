@@ -23,13 +23,13 @@ import pandas as pd
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "src"))
 
 import yfinance as yf
 from dotenv import load_dotenv
 from loguru import logger
-from src.database import get_db_session
-from src.database.models import MarketSentiment
+from database import get_db_session
+from database.models import MarketSentiment
 
 # Load environment variables
 load_dotenv(project_root / '.env')

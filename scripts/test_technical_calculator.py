@@ -7,15 +7,16 @@ Purpose: Verify technical score calculations work correctly with actual data
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
 import logging
 from typing import Dict, List
 from sqlalchemy import select, text
 
-from src.database import get_db_session
-from src.database.models import Stock, PriceData
-from src.calculators.technical import TechnicalCalculator, extract_technical_metrics_from_db
+from database import get_db_session
+from database.models import Stock, PriceData
+from calculators.technical import TechnicalCalculator, extract_technical_metrics_from_db
 
 # Configure logging
 logging.basicConfig(

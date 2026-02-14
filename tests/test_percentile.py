@@ -7,7 +7,7 @@ Tests the core percentile ranking functionality that underlies all scoring
 
 import pytest
 import numpy as np
-from src.calculators.percentile import (
+from calculators.percentile import (
     percentile_rank,
     percentile_rank_inverted,
     rank_universe,

@@ -6,8 +6,8 @@ Includes:
 - validators: Data validation helpers
 """
 
-from src.utils.rate_limiter import RateLimiter
-from src.utils.validators import (
+from .rate_limiter import RateLimiter
+from .validators import (
     validate_numeric,
     validate_percentage,
     validate_ratio,

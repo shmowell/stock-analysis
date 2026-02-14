@@ -16,8 +16,8 @@ from typing import Dict, Optional, Any
 from datetime import datetime
 import logging
 
-from src.utils.rate_limiter import RateLimiter
-from src.utils.validators import (
+from utils.rate_limiter import RateLimiter
+from utils.validators import (
     validate_numeric,
     validate_api_response,
     is_valid_ticker,

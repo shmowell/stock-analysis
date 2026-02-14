@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from src.models.composite import CompositeScore, Recommendation
-from src.overrides.models import (
+from models.composite import CompositeScore, Recommendation
+from overrides.models import (
     ConvictionLevel,
     OverrideDocumentation,
     OverrideRequest,
@@ -24,8 +24,8 @@ from src.overrides.models import (
     SentimentOverride,
     WeightOverride,
 )
-from src.overrides.override_logger import OverrideLogger
-from src.overrides.override_manager import OverrideManager, OverrideValidationError
+from overrides.override_logger import OverrideLogger
+from overrides.override_manager import OverrideManager, OverrideValidationError
 
 
 # ============================================================================

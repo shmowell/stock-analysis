@@ -25,7 +25,7 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
-from src.models.composite import CompositeScore, CompositeScoreCalculator, Recommendation
+from models.composite import CompositeScore, CompositeScoreCalculator, Recommendation
 from .models import (
     ConvictionLevel,
     OverrideDocumentation,

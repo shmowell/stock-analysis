@@ -18,7 +18,8 @@ Usage:
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
 from datetime import datetime, timedelta
 import logging
@@ -28,8 +29,8 @@ import numpy as np
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
 
-from src.database import get_db_session
-from src.database.models import Stock, PriceData, TechnicalIndicator
+from database import get_db_session
+from database.models import Stock, PriceData, TechnicalIndicator
 
 # Configure logging
 logging.basicConfig(

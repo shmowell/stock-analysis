@@ -18,8 +18,8 @@ import pytest
 import os
 from datetime import datetime
 
-from src.data_collection import YahooFinanceCollector, AlphaVantageCollector
-from src.utils.validators import DataValidationError
+from data_collection import YahooFinanceCollector, AlphaVantageCollector
+from utils.validators import DataValidationError
 
 
 # Mark all tests in this module as integration tests

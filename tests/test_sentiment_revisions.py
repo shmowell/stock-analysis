@@ -8,7 +8,7 @@ recommendation_mean proxy.
 """
 
 import pytest
-from src.calculators.sentiment import SentimentCalculator
+from calculators.sentiment import SentimentCalculator
 
 
 class TestRevisionScoreWithRealData:

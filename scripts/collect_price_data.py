@@ -11,7 +11,8 @@ Usage:
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
 from datetime import datetime, date
 import logging
@@ -20,9 +21,9 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
-from src.database import get_db_session
-from src.database.models import Stock, PriceData
-from src.data_collection.yahoo_finance import YahooFinanceCollector
+from database import get_db_session
+from database.models import Stock, PriceData
+from data_collection.yahoo_finance import YahooFinanceCollector
 
 # Configure logging
 logging.basicConfig(

@@ -20,9 +20,9 @@ Usage:
     grades = fmp.get_stock_grades('AAPL')
 """
 
-from src.data_collection.yahoo_finance import YahooFinanceCollector
-from src.data_collection.alpha_vantage import AlphaVantageCollector
-from src.data_collection.fmp import FMPCollector
+from .yahoo_finance import YahooFinanceCollector
+from .alpha_vantage import AlphaVantageCollector
+from .fmp import FMPCollector
 
 __all__ = [
     'YahooFinanceCollector',

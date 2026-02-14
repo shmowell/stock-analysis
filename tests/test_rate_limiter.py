@@ -8,7 +8,7 @@ Framework Reference: Section 9 (API Integration)
 
 import pytest
 import time
-from src.utils.rate_limiter import RateLimiter
+from utils.rate_limiter import RateLimiter
 
 
 def test_rate_limiter_initialization():

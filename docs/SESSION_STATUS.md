@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-13 (Daily workflow tools planned)
-**Current Phase:** Phase 4 — User-Facing Tools (PLANNED)
-**Status:** Phases 1-3 complete. Daily workflow tools designed, ready to implement.
+**Last Updated:** 2026-02-14 (Phase 4 complete)
+**Current Phase:** Phase 4 — User-Facing Tools (COMPLETE)
+**Status:** Phases 1-4 complete. All daily workflow tools operational.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -31,20 +31,25 @@
 - momentum_12_1 operational for all 15 stocks
 - sector_relative_6m operational for all 15 stocks (7 sectors)
 - All 6 technical sub-components now active
-- calculate_scores.py fixed: latest-record-per-ticker, proper None checks
 - ✅ FMP API integration: analyst estimates & stock grades (13/15 stocks)
 - ✅ Real analyst revision tracking via estimate snapshots
 - ✅ Sentiment calculator upgraded with real FMP revision data + proxy fallback
 
 ### Phase 3: Override System COMPLETE
-- ✅ Override data models (OverrideType, ConvictionLevel, WeightOverride, SentimentOverride, OverrideDocumentation, OverrideRequest, OverrideResult)
-- ✅ OverrideManager with guardrail enforcement (weight/sentiment/combined limits, forbidden overrides, extreme override detection)
-- ✅ OverrideLogger with JSON persistence and statistics
-- ✅ Comprehensive test suite: 75 tests across 9 classes, all passing
-- ✅ CLI script: `scripts/apply_override.py` (tested with weight + sentiment overrides)
-- ✅ Score-saving added to `calculate_scores.py` → `data/processed/latest_scores.json`
+- ✅ Override data models, OverrideManager with guardrails, OverrideLogger
+- ✅ CLI script: `scripts/apply_override.py`
 - ✅ End-to-end verified: calculate_scores → apply_override → JSON log output
-- ✅ Bug fixes: file naming collision (microsecond precision), import path fix
+
+### Phase 4: User-Facing Tools COMPLETE
+- ✅ `ScoringPipeline` extracted to `src/scoring/pipeline.py` (reusable class)
+- ✅ `StalenessChecker` at `src/utils/staleness.py` (configurable cadences)
+- ✅ `scripts/daily_report.py` — primary daily tool (refresh, score, compare, report)
+- ✅ `scripts/manage_universe.py` — add/remove/list/reactivate stocks
+- ✅ `scripts/review_overrides.py` — list/summary/detail override views
+- ✅ Import cleanup: standardized all `from src.xxx` → `from xxx` across codebase
+- ✅ `stock_scores` DB table schema aligned with ORM model
+- ✅ 54 new tests (staleness, pipeline, daily report) — all passing
+- ✅ `conftest.py` for consistent test imports
 
 **Current Database:**
 - 15 active stocks across 7 sectors
@@ -54,48 +59,61 @@
 - Sentiment data: 15 records (13 with FMP data, 2 Yahoo-only)
 - Market sentiment: 1 record (3/4 indicators)
 - FMP estimate snapshots: 130 records (baseline for revision tracking)
+- Stock scores: 15 records (persisted to DB + JSON)
 
 ---
 
-## Next Session Goals — Phase 4: User-Facing Tools
+## Next Session Goals — Phase 5: Testing & Backtesting
 
-**Primary Objective:** Build daily workflow tools per approved plan
+**Primary Objective:** Historical validation and hardening
 
-**Plan file:** `.claude/plans/dynamic-watching-river.md`
-
-### Implementation Order (sequential)
-
-1. **Step 1: Extract Scoring Pipeline** — `src/scoring/pipeline.py`
-   - Extract reusable `ScoringPipeline` class from `calculate_scores.py`
-   - Add `persist_scores_to_db()` (uses existing `stock_scores` table)
-   - Add `load_previous_scores()` for change comparison
-   - Refactor `calculate_scores.py` to thin wrapper — verify identical output
-
-2. **Step 2: Data Staleness Checker** — `src/utils/staleness.py`
-   - Query MAX(date) per table, compare against cadences (daily/weekly/monthly)
-
-3. **Step 3: Daily Report** — `scripts/daily_report.py` (PRIMARY TOOL)
-   - Smart data refresh → score → compare → report
-   - Flags: `--skip-refresh`, `--force-refresh`, `--ticker AAPL`
-   - Shows: action items, ranked list, movers, active overrides, data quality
-   - Saves report to `data/reports/daily_YYYY-MM-DD.txt`
-
-4. **Step 4: Universe Manager** — `scripts/manage_universe.py`
-   - `add TSLA META AMD` / `remove DIS` / `list` / `reactivate DIS`
-
-5. **Step 5: Override Reviewer** — `scripts/review_overrides.py`
-   - `list` / `summary` / `detail GOOGL` (wraps existing OverrideLogger)
-
-6. **Step 6: Tests for all new code**
+### Potential Tasks
+1. **Backtesting framework** — test scoring model against historical data
+2. **Integration tests with edge cases** — empty universe, missing data, API failures
+3. **Signal agreement / conviction display** — fold into daily report
+4. **Paper trading mode** — track recommendations vs actual returns
+5. **AAII sentiment** — if premium API becomes available
 
 ### Deferred Items
-- Signal Agreement / Conviction Display (fold into daily report later)
-- Integration Tests with Edge Cases
 - AAII Sentiment (requires premium API)
+- Override alpha calculation (requires price performance tracking)
+- Paper trading validation (Framework Section 10, Phase 5)
 
 ---
 
 ## Quick Reference
+
+### Daily Workflow Commands
+```bash
+# Daily pre-market analysis (primary command)
+python scripts/daily_report.py
+
+# Score without refreshing data
+python scripts/daily_report.py --skip-refresh
+
+# Force full data refresh
+python scripts/daily_report.py --force-refresh
+
+# Single ticker report
+python scripts/daily_report.py --ticker AAPL
+
+# Manage universe
+python scripts/manage_universe.py list
+python scripts/manage_universe.py add TSLA META
+python scripts/manage_universe.py remove DIS
+python scripts/manage_universe.py reactivate DIS
+
+# Review overrides
+python scripts/review_overrides.py summary
+python scripts/review_overrides.py list
+python scripts/review_overrides.py detail GOOGL
+
+# Apply override
+python scripts/apply_override.py
+
+# Calculate scores (verbose)
+python scripts/calculate_scores.py
+```
 
 ### Current Environment
 - **Database:** PostgreSQL, stock_analysis
@@ -103,9 +121,9 @@
   - 130 FMP estimate snapshots (baseline for future revision detection)
 - **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min), FMP (250/day), DataHub.io (free)
 - **Python:** 3.12.9
-- **Tests:** pytest (334 passing: 259 core + 75 override)
+- **Tests:** pytest (386 passing: 332 core + 54 Phase 4)
 
-### Latest Scores (2026-02-13)
+### Latest Scores (2026-02-14)
 | Rank | Ticker | Recommendation | Composite | Fund | Tech | Sent |
 |------|--------|---------------|-----------|------|------|------|
 | 1 | JNJ | STRONG BUY | 64.0 | 53.5 | 86.5 | 48.2 |
@@ -114,13 +132,12 @@
 | 4 | NVDA | BUY | 62.4 | 62.3 | 66.8 | 55.0 |
 | 5 | XOM | HOLD | 55.4 | 48.5 | 68.5 | 48.2 |
 
-### Override System Files
-- `src/overrides/models.py` - Data models
-- `src/overrides/override_manager.py` - Core logic + guardrails
-- `src/overrides/override_logger.py` - JSON persistence
-- `src/overrides/__init__.py` - Package init
-- `tests/test_override_manager.py` - 60+ tests
-- `scripts/apply_override.py` - CLI script
+### Key Module Files
+- `src/scoring/pipeline.py` — ScoringPipeline (reusable scoring orchestration)
+- `src/utils/staleness.py` — StalenessChecker (data freshness)
+- `src/overrides/override_manager.py` — Core override logic + guardrails
+- `src/overrides/override_logger.py` — JSON persistence
+- `src/models/composite.py` — CompositeScoreCalculator
 
 ### Known Limitations
 
@@ -141,4 +158,5 @@
 **Phase 1 Progress: 100% COMPLETE**
 **Phase 2 Progress: 100% COMPLETE**
 **Phase 3 Progress: 100% COMPLETE**
-**Phase 4 Progress: PLANNED — ready to implement**
+**Phase 4 Progress: 100% COMPLETE**
+**Phase 5 Progress: NOT STARTED**

@@ -4,6 +4,60 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-14: Phase 4 Implementation — Daily Workflow & User-Facing Tools ✅
+
+**Completed Tasks:**
+- Extracted `ScoringPipeline` class from monolithic `calculate_scores.py` (593 lines → reusable 480-line module)
+- Created `src/scoring/pipeline.py` with `ScoringPipeline` and `PipelineResult` classes
+- Refactored `scripts/calculate_scores.py` to thin wrapper (90 lines) — identical output verified
+- Created `src/utils/staleness.py` — `StalenessChecker` with configurable cadences per table
+- Built `scripts/daily_report.py` — primary daily tool with data freshness check, smart refresh, scoring, change comparison, and actionable report
+- Built `scripts/manage_universe.py` — add/remove/list/reactivate stocks via CLI subcommands
+- Built `scripts/review_overrides.py` — list/summary/detail views wrapping existing OverrideLogger
+- Fixed `stock_scores` DB table schema (recreated to match ORM model)
+- Fixed all `from src.xxx` imports across entire codebase to use relative/direct imports
+- Created `conftest.py` at project root to add `src/` to sys.path for all tests
+- Wrote 54 new tests (18 staleness, 20 pipeline, 16 daily report) — all passing
+- Total test suite: 386 passing (up from 332), 4 pre-existing Alpha Vantage failures
+
+**Files Created:**
+- `src/scoring/__init__.py` — Scoring module package init
+- `src/scoring/pipeline.py` — `ScoringPipeline` and `PipelineResult` classes
+- `src/utils/staleness.py` — `StalenessChecker` and `StalenessResult`
+- `scripts/daily_report.py` — Daily report CLI (--skip-refresh, --force-refresh, --ticker, --no-save)
+- `scripts/manage_universe.py` — Universe manager CLI (add/remove/list/reactivate)
+- `scripts/review_overrides.py` — Override reviewer CLI (list/summary/detail)
+- `conftest.py` — Root-level pytest configuration
+- `tests/test_staleness.py` — 18 tests for staleness checker
+- `tests/test_pipeline.py` — 20 tests for scoring pipeline
+- `tests/test_daily_report.py` — 16 tests for daily report functions
+
+**Files Modified:**
+- `scripts/calculate_scores.py` — Refactored to thin wrapper around ScoringPipeline
+- `src/utils/__init__.py` — Fixed imports from `src.utils.xxx` to relative
+- `src/data_collection/__init__.py` — Fixed imports to relative
+- `src/data_collection/yahoo_finance.py` — Fixed import prefix
+- `src/data_collection/alpha_vantage.py` — Fixed import prefix
+- `src/data_collection/fmp.py` — Fixed import prefix
+- `src/overrides/override_manager.py` — Fixed import prefix
+- All scripts/*.py — Updated sys.path setup and imports
+- All tests/*.py — Updated import prefixes
+
+**Technical Decisions:**
+1. Used subprocess for data refresh in daily_report (not direct imports) — keeps scripts independent and avoids import side effects
+2. Recreated `stock_scores` table to match ORM model — old schema had unused sub-component columns
+3. Cast `np.float64` to native `float` in `persist_to_db` — PostgreSQL doesn't recognize numpy types
+4. Changed all imports from `from src.xxx` to `from xxx` with `src/` on sys.path — consistent pattern across codebase
+5. Used `conftest.py` at project root for pytest sys.path setup — cleanest solution for test imports
+
+**Import Path Cleanup:**
+The codebase had two competing import patterns:
+- Old: `sys.path.insert(0, project_root)` + `from src.xxx import ...`
+- New: `sys.path.insert(0, project_root / "src")` + `from xxx import ...`
+Standardized on the new pattern. All internal cross-package imports within `src/` now use either relative imports (`.xxx`) or direct imports (`from xxx`).
+
+---
+
 ## Session 2026-02-13 (Part 9): Phase 4 Planning — Daily Workflow & User Tools ✅
 
 **Completed Tasks:**

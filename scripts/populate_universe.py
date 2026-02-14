@@ -15,12 +15,13 @@ import os
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
-from src.database import get_db_session, test_connection
-from src.database.models import Stock
-from src.data_collection import YahooFinanceCollector
-from src.utils.validators import DataValidationError
+from database import get_db_session, test_connection
+from database.models import Stock
+from data_collection import YahooFinanceCollector
+from utils.validators import DataValidationError
 import logging
 
 # Setup logging

@@ -4,10 +4,11 @@ Verify fundamental data collection and display summary.
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
-from src.database import get_db_session
-from src.database.models import FundamentalData
+from database import get_db_session
+from database.models import FundamentalData
 from sqlalchemy import select, func
 
 def main():

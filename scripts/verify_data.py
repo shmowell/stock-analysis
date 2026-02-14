@@ -1,10 +1,11 @@
 """Quick data verification script."""
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
-from src.database import get_db_session
-from src.database.models import Stock
+from database import get_db_session
+from database.models import Stock
 
 with get_db_session() as session:
     stocks = session.query(Stock).all()

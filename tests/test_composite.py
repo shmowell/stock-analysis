@@ -16,7 +16,7 @@ Date: 2026-02-12
 """
 
 import pytest
-from src.models.composite import (
+from models.composite import (
     Recommendation,
     CompositeScore,
     CompositeScoreCalculator

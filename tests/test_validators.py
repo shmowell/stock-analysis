@@ -11,7 +11,7 @@ Framework Reference: CLAUDE.md - Data Quality
 import pytest
 import numpy as np
 from datetime import datetime, timedelta
-from src.utils.validators import (
+from utils.validators import (
     validate_numeric,
     validate_percentage,
     validate_ratio,

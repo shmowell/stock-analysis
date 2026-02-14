@@ -6,7 +6,7 @@ Tests all sentiment scoring components and composite calculations.
 """
 
 import pytest
-from src.calculators.sentiment import SentimentCalculator
+from calculators.sentiment import SentimentCalculator
 
 
 class TestShortInterestScore:

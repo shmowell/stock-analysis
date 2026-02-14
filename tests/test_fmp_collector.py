@@ -9,8 +9,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
 
-from src.data_collection.fmp import FMPCollector
-from src.utils.validators import DataValidationError
+from data_collection.fmp import FMPCollector
+from utils.validators import DataValidationError
 
 
 # --- Fixtures ---
