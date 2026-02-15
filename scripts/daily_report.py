@@ -32,6 +32,7 @@ from database import get_db_session
 from scoring import ScoringPipeline
 from scoring.pipeline import PipelineResult
 from utils.staleness import StalenessChecker, StalenessResult
+from backtesting.snapshot_manager import SnapshotManager
 
 
 # Data collection scripts in dependency order
@@ -328,6 +329,11 @@ def main():
         if not args.no_save:
             pipeline.persist_to_db(session, result)
             pipeline.persist_to_json(result)
+
+            # Save point-in-time snapshot for future backtesting
+            snapshot_mgr = SnapshotManager()
+            snap_path = snapshot_mgr.save(result)
+            print(f"  Snapshot saved to {snap_path}")
 
     # Step 4: Compute movers
     movers = compute_movers(result, previous)

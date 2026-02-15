@@ -4,6 +4,48 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-15: Phase 5 Implementation — Backtesting Framework ✅
+
+**Completed Tasks:**
+- Implemented full backtesting framework as designed in Phase 5 plan
+- All 6 implementation steps completed and verified
+
+**Files Created:**
+- `src/backtesting/indicator_builder.py` — IndicatorBuilder: reusable indicator calculation from price DataFrames for any historical date (extracts math from `scripts/calculate_technical_indicators.py`)
+- `src/backtesting/technical_backtest.py` — TechnicalBacktester + BacktestResult + BacktestReport: monthly checkpoint scoring, forward return measurement, quintile analysis, Spearman correlation, hit rates
+- `src/backtesting/snapshot_manager.py` — SnapshotManager: save/load point-in-time pipeline data as JSON snapshots
+- `scripts/run_backtest.py` — CLI entry point for running backtests with custom date ranges
+- `tests/test_indicator_builder.py` — 30 tests for IndicatorBuilder
+- `tests/test_technical_backtest.py` — 20 tests for TechnicalBacktester
+- `tests/test_snapshot_manager.py` — 11 tests for SnapshotManager
+
+**Files Modified:**
+- `src/backtesting/__init__.py` — Updated exports to include all new classes
+- `scripts/daily_report.py` — Added automatic snapshot saving after scoring
+
+**Technical Decisions:**
+1. IndicatorBuilder is a pure calculation engine with no DB dependency — input is a price DataFrame, output is an indicator DataFrame for all dates
+2. `get_as_of()` returns the latest available data on or before the target date, with a 7-day staleness guard in the backtester to prevent using stale data for future checkpoints
+3. `build_snapshot()` produces dicts matching the exact format expected by `ScoringPipeline._prepare_technical()`
+4. Sector-relative metrics computed cross-sectionally via `compute_sector_relative()` for point-in-time accuracy
+5. Spearman rank correlation implemented from scratch (no scipy dependency)
+6. Forward returns measured at 1m/3m/6m horizons using calendar days (30/91/182)
+
+**Test Results:**
+- 61 new Phase 5 tests — all passing
+- 448 total tests passing (up from 386)
+- 3 pre-existing Alpha Vantage API integration failures (rate limiting, not related)
+
+**Backtest Results (first run):**
+- 15 stocks, 11 monthly checkpoints (2025-02 to 2025-12)
+- Q1 (top) 1m return: +2.90%, long-short spread: +0.29%
+- Spearman r: -0.08 (weak, expected for 15-stock universe)
+- Limited by 2 years of price data (only ~12 months of testable checkpoints after 12-month warmup)
+
+**Git Commit:** (pending)
+
+---
+
 ## Session 2026-02-14 (Part 2): Phase 5 Planning — Backtesting Framework ✅
 
 **Completed Tasks:**
