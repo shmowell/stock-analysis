@@ -4,6 +4,37 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-14 (Part 2): Phase 5 Planning — Backtesting Framework ✅
+
+**Completed Tasks:**
+- Explored full codebase architecture for backtesting feasibility (3 parallel explore agents)
+- Identified key constraint: 2 years of price data available, but only current snapshots for fundamentals/sentiment
+- Designed backtesting framework with 3 components:
+  1. **IndicatorBuilder** — reusable technical indicator calculation from price DataFrames for any historical date
+  2. **TechnicalBacktester** — run technical scoring on monthly checkpoints, measure forward returns by quintile
+  3. **SnapshotManager** — save point-in-time pipeline data for future full-model backtesting
+- Plan approved by user, implementation deferred to next session
+- Created `src/backtesting/__init__.py` package (skeleton only)
+
+**Plan File:** `.claude/plans/radiant-exploring-dongarra.md`
+
+**Key Design Decisions:**
+1. Technical-only backtest first (we have price history), full-model backtest later (need accumulated snapshots)
+2. IndicatorBuilder extracts math from `scripts/calculate_technical_indicators.py` into reusable, date-parameterized class
+3. Monthly checkpoints over 12 months (first 12 months of price data = warmup for 12-1 momentum)
+4. Forward returns measured at 1m/3m/6m horizons, analyzed by quintile
+5. Snapshot saving wired into daily_report.py for automatic accumulation
+6. ~40 new tests across 3 test files
+
+**Files Created:**
+- `src/backtesting/__init__.py` — Package init (skeleton)
+
+**No code implementation — planning only session.**
+
+**Next Session:** Implement the full backtesting framework per approved plan.
+
+---
+
 ## Session 2026-02-14: Phase 4 Implementation — Daily Workflow & User-Facing Tools ✅
 
 **Completed Tasks:**

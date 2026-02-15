@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-14 (Phase 4 complete)
-**Current Phase:** Phase 4 — User-Facing Tools (COMPLETE)
-**Status:** Phases 1-4 complete. All daily workflow tools operational.
+**Last Updated:** 2026-02-14 (Phase 5 planning complete)
+**Current Phase:** Phase 5 — Backtesting Framework (PLANNED)
+**Status:** Phases 1-4 complete. Backtesting framework designed and approved, ready for implementation.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -63,21 +63,30 @@
 
 ---
 
-## Next Session Goals — Phase 5: Testing & Backtesting
+## Next Session Goals — Phase 5: Backtesting Framework Implementation
 
-**Primary Objective:** Historical validation and hardening
+**Primary Objective:** Implement the approved backtesting framework plan.
 
-### Potential Tasks
-1. **Backtesting framework** — test scoring model against historical data
-2. **Integration tests with edge cases** — empty universe, missing data, API failures
-3. **Signal agreement / conviction display** — fold into daily report
-4. **Paper trading mode** — track recommendations vs actual returns
-5. **AAII sentiment** — if premium API becomes available
+**Plan file:** `.claude/plans/radiant-exploring-dongarra.md`
+
+### Implementation Steps (in order)
+1. **IndicatorBuilder** (`src/backtesting/indicator_builder.py`) + tests
+   - Reusable indicator calculation from price DataFrames for any historical date
+   - Extracts math from `scripts/calculate_technical_indicators.py`
+2. **TechnicalBacktester** (`src/backtesting/technical_backtest.py`) + tests
+   - Monthly checkpoints, technical scoring, forward return measurement
+   - Quintile analysis, Spearman correlation, hit rate reporting
+3. **SnapshotManager** (`src/backtesting/snapshot_manager.py`) + tests
+   - Save/load point-in-time pipeline data as JSON snapshots
+4. **CLI script** (`scripts/run_backtest.py`)
+   - Entry point for running backtests with custom date ranges
+5. **Integration** — wire snapshot saving into `scripts/daily_report.py`
+6. **Verify** — run full backtest, check all tests pass
 
 ### Deferred Items
 - AAII Sentiment (requires premium API)
 - Override alpha calculation (requires price performance tracking)
-- Paper trading validation (Framework Section 10, Phase 5)
+- Full-model backtest (requires accumulated snapshots over time)
 
 ---
 
@@ -134,6 +143,7 @@ python scripts/calculate_scores.py
 
 ### Key Module Files
 - `src/scoring/pipeline.py` — ScoringPipeline (reusable scoring orchestration)
+- `src/backtesting/` — Backtesting package (skeleton created, implementation pending)
 - `src/utils/staleness.py` — StalenessChecker (data freshness)
 - `src/overrides/override_manager.py` — Core override logic + guardrails
 - `src/overrides/override_logger.py` — JSON persistence
@@ -159,4 +169,4 @@ python scripts/calculate_scores.py
 **Phase 2 Progress: 100% COMPLETE**
 **Phase 3 Progress: 100% COMPLETE**
 **Phase 4 Progress: 100% COMPLETE**
-**Phase 5 Progress: NOT STARTED**
+**Phase 5 Progress: PLANNED (implementation next session)**
