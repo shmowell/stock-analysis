@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-15 (Phase 5 implementation complete)
-**Current Phase:** Phase 5 — Backtesting Framework (COMPLETE)
-**Status:** Phases 1-5 complete. Backtesting framework implemented, tested, and verified.
+**Last Updated:** 2026-02-16 (Web GUI + Score Explainability)
+**Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
+**Status:** Phases 1-5 complete. Web GUI live with score explainability and data status visibility.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -60,8 +60,18 @@
 - ✅ 61 new tests (30 indicator builder + 20 backtester + 11 snapshot manager)
 - ✅ End-to-end verified: backtest ran on 15 stocks, 11 checkpoints, report generated
 
+### Phase 6: Web GUI & Refinement (IN PROGRESS)
+- ✅ Flask web app with dashboard, scores, universe, overrides, backtest, data status pages
+- ✅ Background task system for score calculation
+- ✅ Score explainability: sub-component breakdowns (fundamental: value/quality/growth, technical: 6 sub-scores, sentiment: market/stock + 4 sub-scores)
+- ✅ Data status visibility: `no_data` warnings for stocks missing DB data (AMD case)
+- ✅ Sentiment calculator returns dict with sub-components
+- ✅ Pipeline preserves sub-component data through to JSON and DB persistence
+- ✅ 18 web route tests
+- ⏳ AMD data collection issue (AMD is active but has no data rows — needs investigation)
+
 **Current Database:**
-- 15 active stocks across 7 sectors
+- 16 active stocks across 7 sectors (AMD added but no data)
 - Price data: 7,545 records (2 years x 15 stocks)
 - Fundamental data: 15 records
 - Technical indicators: 15 records (all fields populated)
@@ -72,15 +82,16 @@
 
 ---
 
-## Next Session Goals — Phase 6: Paper Trading & Refinement
+## Next Session Goals
 
-**Potential tasks (not yet planned):**
-1. Expand stock universe (add more stocks for better percentile ranking)
-2. Extend price data history (more backtest coverage)
-3. Full-model backtest (once snapshots accumulate over daily runs)
-4. Paper trading simulation with real-time tracking
-5. Override alpha calculation (track override performance vs base model)
-6. Dashboard/visualization for scores and backtest results
+**Potential tasks:**
+1. Fix AMD data collection (run data scripts for AMD, or investigate why AMD is missing)
+2. Expand stock universe (add more stocks for better percentile ranking)
+3. Extend price data history (more backtest coverage)
+4. Full-model backtest (once snapshots accumulate over daily runs)
+5. Paper trading simulation with real-time tracking
+6. Override alpha calculation (track override performance vs base model)
+7. Metric-level data availability (show "3/5 metrics" alongside each sub-component score)
 
 ### Deferred Items
 - AAII Sentiment (requires premium API)
@@ -133,7 +144,7 @@ python scripts/calculate_scores.py
   - 130 FMP estimate snapshots (baseline for future revision detection)
 - **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min), FMP (250/day), DataHub.io (free)
 - **Python:** 3.12.9
-- **Tests:** pytest (448 passing: 332 core + 54 Phase 4 + 61 Phase 5)
+- **Tests:** pytest (460 passing: 332 core + 54 Phase 4 + 61 Phase 5 + 12 web + 1 explainability)
 
 ### Latest Scores (2026-02-14)
 | Rank | Ticker | Recommendation | Composite | Fund | Tech | Sent |
@@ -145,7 +156,8 @@ python scripts/calculate_scores.py
 | 5 | XOM | HOLD | 55.4 | 48.5 | 68.5 | 48.2 |
 
 ### Key Module Files
-- `src/scoring/pipeline.py` — ScoringPipeline (reusable scoring orchestration)
+- `src/web/` — Flask web GUI (dashboard, scores, universe, overrides, backtest, data status)
+- `src/scoring/pipeline.py` — ScoringPipeline (reusable scoring orchestration, sub-component data)
 - `src/backtesting/indicator_builder.py` — IndicatorBuilder (indicator math for any date)
 - `src/backtesting/technical_backtest.py` — TechnicalBacktester (quintile analysis, correlations)
 - `src/backtesting/snapshot_manager.py` — SnapshotManager (point-in-time snapshots)
@@ -180,3 +192,4 @@ python scripts/calculate_scores.py
 **Phase 3 Progress: 100% COMPLETE**
 **Phase 4 Progress: 100% COMPLETE**
 **Phase 5 Progress: 100% COMPLETE**
+**Phase 6 Progress: Web GUI + Explainability COMPLETE, AMD data fix pending**

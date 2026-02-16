@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Universe - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Stock Universe <span class="text-muted">({{ total_active }} active)</span></h1>
+    <a href="/universe/add" class="btn btn-primary">Add Stocks</a>
+</div>
+
+{% for sector in sectors|sort %}
+<div class="card">
+    <h2>{{ sector }} <span class="text-muted">({{ sectors[sector]|length }})</span></h2>
+    <table class="table">
+        <thead>
+            <tr><th>Ticker</th><th>Company</th><th>Industry</th><th>Market Cap</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for s in sectors[sector] %}
+            <tr>
+                <td><a href="/scores/{{ s.ticker }}">{{ s.ticker }}</a></td>
+                <td>{{ s.name }}</td>
+                <td>{{ s.industry }}</td>
+                <td>
+                    {% if s.market_cap %}
+                        ${{ "%.1f"|format(s.market_cap / 1e9) }}B
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="/universe/remove" style="display:inline">
+                        <input type="hidden" name="ticker" value="{{ s.ticker }}">
+                        <button type="submit" class="btn btn-small btn-danger"
+                                onclick="return confirm('Remove {{ s.ticker }}?')">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+
+{% if inactive %}
+<div class="card">
+    <h2>Inactive Stocks <span class="text-muted">({{ inactive|length }})</span></h2>
+    <table class="table">
+        <thead>
+            <tr><th>Ticker</th><th>Company</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for s in inactive %}
+            <tr>
+                <td>{{ s.ticker }}</td>
+                <td>{{ s.name }}</td>
+                <td>
+                    <form method="post" action="/universe/reactivate" style="display:inline">
+                        <input type="hidden" name="ticker" value="{{ s.ticker }}">
+                        <button type="submit" class="btn btn-small btn-secondary">Reactivate</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

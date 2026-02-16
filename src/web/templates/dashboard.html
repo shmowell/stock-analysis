@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Stock Analysis{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="dashboard-grid">
+    <!-- Quick Actions -->
+    <div class="card">
+        <h2>Quick Actions</h2>
+        <div class="action-buttons">
+            <form method="post" action="/scores/calculate">
+                <button type="submit" class="btn btn-primary">Calculate Scores</button>
+            </form>
+            <form method="post" action="/scores/calculate">
+                <input type="hidden" name="force_refresh" value="1">
+                <button type="submit" class="btn btn-secondary">Full Refresh + Score</button>
+            </form>
+            <form method="post" action="/data/refresh">
+                <button type="submit" class="btn btn-secondary">Refresh Stale Data</button>
+            </form>
+            <a href="/backtest/" class="btn btn-secondary">Run Backtest</a>
+        </div>
+    </div>
+
+    <!-- Data Freshness -->
+    <div class="card">
+        <h2>Data Freshness
+            {% if stale_count > 0 %}
+                <span class="badge badge-warn">{{ stale_count }} stale</span>
+            {% else %}
+                <span class="badge badge-ok">All fresh</span>
+            {% endif %}
+        </h2>
+        <table class="table-compact">
+            {% for s in staleness %}
+            <tr>
+                <td>{{ s.table }}</td>
+                <td>
+                    {% if s.stale %}
+                        <span class="badge badge-warn">Stale</span>
+                    {% else %}
+                        <span class="badge badge-ok">OK</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <a href="/data/status" class="link-small">View details</a>
+    </div>
+</div>
+
+<!-- Scores Table -->
+<div class="card">
+    <h2>Latest Scores <span class="text-muted">({{ stock_count }} stocks)</span></h2>
+    {% if scores %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Ticker</th>
+                <th>Recommendation</th>
+                <th>Composite</th>
+                <th>Fundamental</th>
+                <th>Technical</th>
+                <th>Sentiment</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in scores %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="/scores/{{ s.ticker }}">{{ s.ticker }}</a></td>
+                <td><span class="rec rec-{{ s.recommendation|lower|replace(' ', '-') }}">{{ s.recommendation }}</span></td>
+                <td>{{ "%.1f"|format(s.final_composite_score|float) }}</td>
+                <td>{{ "%.1f"|format(s.fundamental_score|float) }}</td>
+                <td>{{ "%.1f"|format(s.technical_score|float) }}</td>
+                <td>{{ "%.1f"|format(s.sentiment_score|float) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="/scores/" class="link-small">View full details</a>
+    {% else %}
+    <p class="text-muted">No scores available. Run scoring pipeline first.</p>
+    {% endif %}
+</div>
+
+<!-- Recent Overrides -->
+{% if recent_overrides %}
+<div class="card">
+    <h2>Recent Overrides</h2>
+    <table class="table-compact">
+        <thead>
+            <tr><th>Date</th><th>Ticker</th><th>Type</th><th>Impact</th></tr>
+        </thead>
+        <tbody>
+            {% for o in recent_overrides %}
+            <tr>
+                <td>{{ o.get('timestamp', '?')[:10] }}</td>
+                <td>{{ o.get('ticker', '?') }}</td>
+                <td>{{ o.get('override_type', '?') }}</td>
+                <td>
+                    {% if o.get('result', {}).get('percentile_impact') is not none %}
+                        {{ "%+.1f"|format(o['result']['percentile_impact']) }}pt
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="/overrides/" class="link-small">View all overrides</a>
+</div>
+{% endif %}
+{% endblock %}

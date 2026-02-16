@@ -228,10 +228,15 @@ class TestStockSpecificSentiment:
         }
         current_price = 100.0
 
-        stock_sentiment = calc.calculate_stock_specific_sentiment(stock_data, current_price)
+        result = calc.calculate_stock_specific_sentiment(stock_data, current_price)
 
         # Average of [50 (short), 40 (revision), 35 (consensus), 50 (insider)] = 43.75
-        assert stock_sentiment == pytest.approx(43.75, abs=0.1)
+        assert result['stock_sentiment'] == pytest.approx(43.75, abs=0.1)
+        # Verify sub-scores are present
+        assert 'short_interest_score' in result
+        assert 'revision_score' in result
+        assert 'consensus_score' in result
+        assert 'insider_score' in result
 
     def test_all_components_bullish(self):
         """All bullish components should produce high score."""
@@ -246,10 +251,10 @@ class TestStockSpecificSentiment:
         }
         current_price = 100.0
 
-        stock_sentiment = calc.calculate_stock_specific_sentiment(stock_data, current_price)
+        result = calc.calculate_stock_specific_sentiment(stock_data, current_price)
 
         # Average of [60, 75, 80, 75] = 72.5
-        assert stock_sentiment == pytest.approx(72.5, abs=0.1)
+        assert result['stock_sentiment'] == pytest.approx(72.5, abs=0.1)
 
     def test_all_components_bearish(self):
         """All bearish components should produce low score."""
@@ -264,10 +269,10 @@ class TestStockSpecificSentiment:
         }
         current_price = 100.0
 
-        stock_sentiment = calc.calculate_stock_specific_sentiment(stock_data, current_price)
+        result = calc.calculate_stock_specific_sentiment(stock_data, current_price)
 
         # Average of [30, 25, 20, 25] = 25.0
-        assert stock_sentiment == pytest.approx(25.0, abs=0.1)
+        assert result['stock_sentiment'] == pytest.approx(25.0, abs=0.1)
 
 
 class TestMarketSentiment:
@@ -321,10 +326,12 @@ class TestCompositeSentimentScore:
         }
         current_price = 100.0
 
-        sentiment_score = calc.calculate_sentiment_score(stock_data, current_price, None)
+        result = calc.calculate_sentiment_score(stock_data, current_price, None)
 
         # Market=50, Stock=43.75 → (50×0.4) + (43.75×0.6) = 20 + 26.25 = 46.25
-        assert sentiment_score == pytest.approx(46.25, abs=0.1)
+        assert result['sentiment_score'] == pytest.approx(46.25, abs=0.1)
+        assert 'market_sentiment' in result
+        assert 'stock_sentiment' in result
 
     def test_bullish_sentiment(self):
         """Bullish sentiment should produce high score."""
@@ -339,10 +346,10 @@ class TestCompositeSentimentScore:
         }
         current_price = 100.0
 
-        sentiment_score = calc.calculate_sentiment_score(stock_data, current_price, None)
+        result = calc.calculate_sentiment_score(stock_data, current_price, None)
 
         # Market=50, Stock=72.5 → (50×0.4) + (72.5×0.6) = 63.5
-        assert sentiment_score == pytest.approx(63.5, abs=0.1)
+        assert result['sentiment_score'] == pytest.approx(63.5, abs=0.1)
 
     def test_bearish_sentiment(self):
         """Bearish sentiment should produce low score."""
@@ -357,10 +364,10 @@ class TestCompositeSentimentScore:
         }
         current_price = 100.0
 
-        sentiment_score = calc.calculate_sentiment_score(stock_data, current_price, None)
+        result = calc.calculate_sentiment_score(stock_data, current_price, None)
 
         # Market=50, Stock=25.0 → (50×0.4) + (25.0×0.6) = 35.0
-        assert sentiment_score == pytest.approx(35.0, abs=0.1)
+        assert result['sentiment_score'] == pytest.approx(35.0, abs=0.1)
 
     def test_weight_distribution(self):
         """Verify framework weights are correctly applied (40% market, 60% stock)."""
@@ -377,12 +384,12 @@ class TestCompositeSentimentScore:
         }
         current_price = 100.0
 
-        sentiment_score = calc.calculate_sentiment_score(stock_data, current_price, None)
+        result = calc.calculate_sentiment_score(stock_data, current_price, None)
 
         # With high stock sentiment, score should be pulled up from neutral 50
-        assert sentiment_score > 50.0
+        assert result['sentiment_score'] > 50.0
         # But not as much as if it were 100% stock weight
-        assert sentiment_score < 80.0
+        assert result['sentiment_score'] < 80.0
 
     def test_score_range_validity(self):
         """All sentiment scores should be in valid 0-100 range."""
@@ -411,7 +418,8 @@ class TestCompositeSentimentScore:
         ]
 
         for stock_data in test_cases:
-            score = calc.calculate_sentiment_score(stock_data, 100.0, None)
+            result = calc.calculate_sentiment_score(stock_data, 100.0, None)
+            score = result['sentiment_score']
             assert 0 <= score <= 100, f"Score {score} out of valid range"
 
 

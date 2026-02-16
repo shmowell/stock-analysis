@@ -298,7 +298,7 @@ class SentimentCalculator:
         self,
         stock_data: Dict[str, any],
         current_price: float
-    ) -> Optional[float]:
+    ) -> Dict[str, Optional[float]]:
         """
         Calculate stock-specific sentiment component.
 
@@ -315,7 +315,7 @@ class SentimentCalculator:
             current_price: Current stock price for analyst target calculation
 
         Returns:
-            Stock-specific sentiment score (0-100), or None if no data available
+            Dict with stock_sentiment (0-100) and individual sub-scores
         """
         scores = []
 
@@ -349,7 +349,7 @@ class SentimentCalculator:
         scores.append(insider_score)
 
         # Average the four components
-        stock_sentiment = np.mean(scores)
+        stock_sentiment = float(np.mean(scores))
 
         self.logger.info(
             f"Stock sentiment components: Short={short_score:.1f}, "
@@ -357,7 +357,13 @@ class SentimentCalculator:
             f"Insider={insider_score:.1f} → Average={stock_sentiment:.1f}"
         )
 
-        return stock_sentiment
+        return {
+            'stock_sentiment': stock_sentiment,
+            'short_interest_score': short_score,
+            'revision_score': revision_score,
+            'consensus_score': consensus_score,
+            'insider_score': insider_score,
+        }
 
     def calculate_market_sentiment(
         self,
@@ -406,7 +412,7 @@ class SentimentCalculator:
         stock_data: Dict[str, any],
         current_price: float,
         market_data: Optional[Dict[str, any]] = None
-    ) -> Optional[float]:
+    ) -> Dict[str, Optional[float]]:
         """
         Calculate base sentiment pillar score.
 
@@ -420,17 +426,21 @@ class SentimentCalculator:
             market_data: Dict containing market-wide sentiment data (optional)
 
         Returns:
-            Sentiment score (0-100), or None if insufficient data
+            Dict with sentiment_score (0-100), market_sentiment, stock_sentiment,
+            and individual sub-scores. Returns {'sentiment_score': None} if
+            insufficient data.
         """
-        # Calculate stock-specific sentiment
-        stock_sentiment = self.calculate_stock_specific_sentiment(
+        # Calculate stock-specific sentiment (returns dict with sub-scores)
+        stock_result = self.calculate_stock_specific_sentiment(
             stock_data,
             current_price
         )
 
+        stock_sentiment = stock_result['stock_sentiment']
+
         if stock_sentiment is None:
             self.logger.warning("Insufficient stock sentiment data")
-            return None
+            return {'sentiment_score': None}
 
         # Calculate market-wide sentiment
         market_sentiment = self.calculate_market_sentiment(market_data)
@@ -446,7 +456,15 @@ class SentimentCalculator:
             f"Stock={stock_sentiment:.1f} (60%) → Total={sentiment_score:.1f}"
         )
 
-        return sentiment_score
+        return {
+            'sentiment_score': sentiment_score,
+            'market_sentiment': market_sentiment,
+            'stock_sentiment': stock_sentiment,
+            'short_interest_score': stock_result['short_interest_score'],
+            'revision_score': stock_result['revision_score'],
+            'consensus_score': stock_result['consensus_score'],
+            'insider_score': stock_result['insider_score'],
+        }
 
 
 def calculate_sentiment(
@@ -466,4 +484,5 @@ def calculate_sentiment(
         Sentiment score (0-100), or None if insufficient data
     """
     calculator = SentimentCalculator()
-    return calculator.calculate_sentiment_score(stock_data, current_price, market_data)
+    result = calculator.calculate_sentiment_score(stock_data, current_price, market_data)
+    return result.get('sentiment_score')

@@ -399,41 +399,78 @@ class ScoringPipeline:
         self._log(f"  Prepared: {len(fund_stock)} fundamental, "
                   f"{len(tech_stock)} technical, {len(sent_stock)} sentiment")
 
-        # Calculate per-stock pillar scores
-        pillar_scores: Dict[str, Dict[str, float]] = {}
+        # Calculate per-stock pillar scores (with sub-component detail)
+        pillar_scores: Dict[str, Dict] = {}
         for ticker in tickers:
+            fund_detail = {}
+            tech_detail = {}
+            sent_detail = {}
+            data_status = {}
+
             # Fundamental
             if ticker in fund_stock:
-                result = self._fundamental_calc.calculate_fundamental_score(
+                fund_result = self._fundamental_calc.calculate_fundamental_score(
                     fund_stock[ticker], fund_universe
                 )
-                fund_score = result.get('fundamental_score', 50.0)
+                fund_score = fund_result.get('fundamental_score', 50.0)
+                fund_detail = {
+                    'value_score': fund_result.get('value_score'),
+                    'quality_score': fund_result.get('quality_score'),
+                    'growth_score': fund_result.get('growth_score'),
+                }
+                data_status['fundamental'] = 'calculated'
             else:
                 fund_score = 50.0
+                data_status['fundamental'] = 'no_data'
 
             # Technical
             if ticker in tech_stock:
-                result = self._technical_calc.calculate_technical_score(
+                tech_result = self._technical_calc.calculate_technical_score(
                     tech_stock[ticker], tech_universe
                 )
-                tech_score = result.get('technical_score', 50.0)
+                tech_score = tech_result.get('technical_score', 50.0)
+                tech_detail = {
+                    'momentum_score': tech_result.get('momentum_score'),
+                    'trend_score': tech_result.get('trend_score'),
+                    'volume_qualified_score': tech_result.get('volume_qualified_score'),
+                    'relative_strength_score': tech_result.get('relative_strength_score'),
+                    'rsi_score': tech_result.get('rsi_score'),
+                    'multi_speed_score': tech_result.get('multi_speed_score'),
+                }
+                data_status['technical'] = 'calculated'
             else:
                 tech_score = 50.0
+                data_status['technical'] = 'no_data'
 
-            # Sentiment
+            # Sentiment (returns dict with sub-components)
             if ticker in sent_stock and ticker in data['latest_prices']:
-                sent_score = self._sentiment_calc.calculate_sentiment_score(
+                sent_result = self._sentiment_calc.calculate_sentiment_score(
                     sent_stock[ticker],
                     data['latest_prices'][ticker],
                     market_data=data['market_sentiment'],
                 )
+                sent_score = sent_result.get('sentiment_score')
+                sent_detail = {
+                    'market_sentiment': sent_result.get('market_sentiment'),
+                    'stock_sentiment': sent_result.get('stock_sentiment'),
+                    'short_interest_score': sent_result.get('short_interest_score'),
+                    'revision_score': sent_result.get('revision_score'),
+                    'consensus_score': sent_result.get('consensus_score'),
+                    'insider_score': sent_result.get('insider_score'),
+                }
+                data_status['sentiment'] = 'calculated'
             else:
                 sent_score = 50.0
+                data_status['sentiment'] = 'no_data'
 
             pillar_scores[ticker] = {
                 'fundamental': fund_score if fund_score is not None else 50.0,
                 'technical': tech_score if tech_score is not None else 50.0,
                 'sentiment': sent_score if sent_score is not None else 50.0,
+                'fundamental_detail': fund_detail,
+                'technical_detail': tech_detail,
+                'sentiment_detail': sent_detail,
+                'data_status': data_status,
             }
 
         self._log(f"  Calculated pillar scores for {len(pillar_scores)} stocks")
@@ -448,12 +485,15 @@ class ScoringPipeline:
 
         return pillar_scores, composite_results
 
-    def _validate_scores(self, pillar_scores: Dict[str, Dict[str, float]]) -> None:
+    _PILLAR_KEYS = ('fundamental', 'technical', 'sentiment')
+
+    def _validate_scores(self, pillar_scores: Dict[str, Dict]) -> None:
         """Validate all pillar scores are within [0, 100]."""
         errors = []
         for ticker, scores in pillar_scores.items():
-            for pillar, score in scores.items():
-                if not (0 <= score <= 100):
+            for pillar in self._PILLAR_KEYS:
+                score = scores.get(pillar)
+                if score is not None and not (0 <= score <= 100):
                     errors.append(f"  {ticker} {pillar}: {score:.2f}")
         if errors:
             self._log("  VALIDATION ERRORS:")
@@ -538,6 +578,9 @@ class ScoringPipeline:
         count = 0
 
         for cr in result.composite_results:
+            pillars = result.pillar_scores.get(cr.ticker, {})
+            fund_detail = pillars.get('fundamental_detail', {})
+
             score_record = StockScore(
                 ticker=cr.ticker,
                 calculation_date=calc_date,
@@ -547,6 +590,9 @@ class ScoringPipeline:
                 base_composite_score=float(cr.composite_score),
                 final_composite_score=float(cr.composite_score),
                 recommendation=cr.recommendation.value,
+                value_score=float(fund_detail['value_score']) if fund_detail.get('value_score') is not None else None,
+                quality_score=float(fund_detail['quality_score']) if fund_detail.get('quality_score') is not None else None,
+                growth_score=float(fund_detail['growth_score']) if fund_detail.get('growth_score') is not None else None,
             )
             session.add(score_record)
             count += 1
@@ -573,22 +619,31 @@ class ScoringPipeline:
             output_path = Path(__file__).parent.parent.parent / 'data' / 'processed' / 'latest_scores.json'
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        scores_list = []
+        for r in result.composite_results:
+            pillars = result.pillar_scores.get(r.ticker, {})
+            entry = {
+                'ticker': r.ticker,
+                'fundamental_score': r.fundamental_score,
+                'technical_score': r.technical_score,
+                'sentiment_score': r.sentiment_score,
+                'composite_score': r.composite_score,
+                'composite_percentile': r.composite_percentile,
+                'recommendation': r.recommendation.value,
+                'sub_components': {
+                    'fundamental': pillars.get('fundamental_detail', {}),
+                    'technical': pillars.get('technical_detail', {}),
+                    'sentiment': pillars.get('sentiment_detail', {}),
+                },
+                'data_status': pillars.get('data_status', {}),
+            }
+            scores_list.append(entry)
+
         scores_data = {
             'generated_at': str(datetime.now()),
             'universe_size': len(result.composite_results),
             'weights': result.weights,
-            'scores': [
-                {
-                    'ticker': r.ticker,
-                    'fundamental_score': r.fundamental_score,
-                    'technical_score': r.technical_score,
-                    'sentiment_score': r.sentiment_score,
-                    'composite_score': r.composite_score,
-                    'composite_percentile': r.composite_percentile,
-                    'recommendation': r.recommendation.value,
-                }
-                for r in result.composite_results
-            ],
+            'scores': scores_list,
         }
         with open(output_path, 'w') as f:
             json.dump(scores_data, f, indent=2)

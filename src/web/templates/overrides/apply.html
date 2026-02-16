@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Apply Override - Stock Analysis{% endblock %}
+
+{% block content %}
+<h1>Apply Override</h1>
+<p class="text-muted">Framework Section 6: Model-First Override System</p>
+
+<!-- Step 1: Select ticker -->
+<div class="card">
+    <h2>1. Select Stock</h2>
+    <form method="get" action="/overrides/apply">
+        <div class="form-row">
+            <select name="ticker" class="form-input" onchange="this.form.submit()">
+                <option value="">-- Select ticker --</option>
+                {% for s in scores %}
+                <option value="{{ s.ticker }}" {% if s.ticker == selected_ticker %}selected{% endif %}>
+                    {{ s.ticker }} — {{ s.recommendation }} ({{ "%.1f"|format(s.composite_score) }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+
+{% if selected_score %}
+<!-- Step 2: Base model output (read-only) -->
+<div class="card">
+    <h2>2. Base Model Output <span class="text-muted">(read-only)</span></h2>
+    <table class="table-compact">
+        <tr><td>Fundamental</td><td><strong>{{ "%.1f"|format(selected_score.fundamental_score) }}</strong></td></tr>
+        <tr><td>Technical</td><td><strong>{{ "%.1f"|format(selected_score.technical_score) }}</strong></td></tr>
+        <tr><td>Sentiment</td><td><strong>{{ "%.1f"|format(selected_score.sentiment_score) }}</strong></td></tr>
+        <tr><td>Composite</td><td><strong>{{ "%.1f"|format(selected_score.composite_score) }}</strong></td></tr>
+        <tr><td>Percentile</td><td><strong>{{ "%.1f"|format(selected_score.composite_percentile) }}</strong></td></tr>
+        <tr><td>Recommendation</td>
+            <td><span class="rec rec-{{ selected_score.recommendation|lower|replace(' ', '-') }}">{{ selected_score.recommendation }}</span></td>
+        </tr>
+    </table>
+</div>
+
+<!-- Step 3: Override form -->
+<div class="card">
+    <h2>3. Override Adjustments</h2>
+    <form method="post" action="/overrides/apply">
+        <input type="hidden" name="ticker" value="{{ selected_ticker }}">
+
+        <fieldset>
+            <legend>Weight Adjustments (optional)</legend>
+            <p class="form-help">Leave blank to keep default. Base: F=45% T=35% S=20%. Allowed range: +/-10%.</p>
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label for="wf">Fundamental</label>
+                    <input type="number" id="wf" name="weight_fundamental"
+                           step="0.01" min="0.35" max="0.55" placeholder="0.45" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="wt">Technical</label>
+                    <input type="number" id="wt" name="weight_technical"
+                           step="0.01" min="0.25" max="0.45" placeholder="0.35" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="ws">Sentiment</label>
+                    <input type="number" id="ws" name="weight_sentiment"
+                           step="0.01" min="0.10" max="0.30" placeholder="0.20" class="form-input">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Sentiment Adjustment (optional)</legend>
+            <div class="form-group">
+                <label for="sa">Adjustment (-15 to +15)</label>
+                <input type="number" id="sa" name="sentiment_adjustment"
+                       step="0.5" min="-15" max="15" placeholder="0" class="form-input">
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Documentation (required)</legend>
+            <div class="form-group">
+                <label for="wmm">What does the model miss?</label>
+                <textarea id="wmm" name="what_model_misses" rows="2" class="form-input" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="wa">Why is your view more accurate?</label>
+                <textarea id="wa" name="why_accurate" rows="2" class="form-input" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="wpw">What would prove you wrong?</label>
+                <textarea id="wpw" name="what_proves_wrong" rows="2" class="form-input" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="conv">Conviction</label>
+                <select id="conv" name="conviction" class="form-input">
+                    <option value="Low">Low</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="High">High</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="ev">Evidence (one per line, optional)</label>
+                <textarea id="ev" name="evidence" rows="3" class="form-input" placeholder="CEO bought 50K shares&#10;CFO bought 30K shares"></textarea>
+            </div>
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary">Apply Override</button>
+        <a href="/overrides/" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% elif scores and not selected_ticker %}
+<p class="text-muted">Select a stock above to view its base model output and apply an override.</p>
+{% elif not scores %}
+<p class="text-muted">No scores available. Run the scoring pipeline first.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Data Status - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Data Freshness</h1>
+    <div class="page-actions">
+        <form method="post" action="/data/refresh" style="display:inline">
+            <button type="submit" class="btn btn-primary">Refresh Stale</button>
+        </form>
+        <form method="post" action="/data/refresh" style="display:inline">
+            <input type="hidden" name="force" value="1">
+            <button type="submit" class="btn btn-secondary">Force Refresh All</button>
+        </form>
+    </div>
+</div>
+
+{% if staleness %}
+<table class="table">
+    <thead>
+        <tr><th>Table</th><th>Status</th><th>Details</th></tr>
+    </thead>
+    <tbody>
+        {% for s in staleness %}
+        <tr>
+            <td>{{ s.table }}</td>
+            <td>
+                {% if s.stale %}
+                    <span class="badge badge-warn">Stale</span>
+                {% else %}
+                    <span class="badge badge-ok">Fresh</span>
+                {% endif %}
+            </td>
+            <td class="text-muted">{{ s }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted">Unable to check data freshness.</p>
+{% endif %}
+{% endblock %}

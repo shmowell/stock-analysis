@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Override Result - {{ ticker }}{% endblock %}
+
+{% block content %}
+<h1>Override Result: {{ ticker }}</h1>
+
+<div class="card">
+    <h2>Before / After</h2>
+    <table class="table">
+        <thead>
+            <tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Composite Score</td>
+                <td>{{ "%.1f"|format(result.base_composite_score) }}</td>
+                <td>{{ "%.1f"|format(result.final_composite_score) }}</td>
+                <td class="{% if result.final_composite_score > result.base_composite_score %}text-green{% else %}text-red{% endif %}">
+                    {{ "%+.1f"|format(result.final_composite_score - result.base_composite_score) }}
+                </td>
+            </tr>
+            <tr>
+                <td>Percentile</td>
+                <td>{{ "%.1f"|format(result.base_composite_percentile) }}</td>
+                <td>{{ "%.1f"|format(result.final_composite_percentile) }}</td>
+                <td>{{ "%+.1f"|format(result.percentile_impact) }}</td>
+            </tr>
+            <tr>
+                <td>Recommendation</td>
+                <td>{{ result.base_recommendation }}</td>
+                <td>{{ result.final_recommendation }}</td>
+                <td>
+                    {% if result.recommendation_changed %}
+                        <span class="badge badge-warn">CHANGED</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if result.guardrail_violations %}
+<div class="card">
+    <h2>Guardrail Violations</h2>
+    <ul>
+        {% for v in result.guardrail_violations %}
+        <li class="text-red">{{ v }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if result.extreme_override %}
+<div class="flash flash-warning">Extreme override: >15 percentile point change</div>
+{% endif %}
+
+<a href="/overrides/" class="btn btn-secondary">View All Overrides</a>
+<a href="/scores/{{ ticker }}" class="btn btn-secondary">View {{ ticker }}</a>
+{% endblock %}

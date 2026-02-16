@@ -327,12 +327,12 @@ class TestMarketSentimentIntegration:
             'num_indicators_available': 4
         }
 
-        sentiment = calc.calculate_sentiment_score(stock_data, 100.0, market_data)
+        result = calc.calculate_sentiment_score(stock_data, 100.0, market_data)
 
         # Market = 65.0, Stock = avg of [50, 60, 65, 60] = 58.75
         # Composite = 65 × 0.4 + 58.75 × 0.6 = 26 + 35.25 = 61.25
-        assert sentiment == pytest.approx(61.25, abs=0.5)
-        assert 0 <= sentiment <= 100
+        assert result['sentiment_score'] == pytest.approx(61.25, abs=0.5)
+        assert 0 <= result['sentiment_score'] <= 100
 
 
 # ========================================================================

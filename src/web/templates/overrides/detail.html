@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ ticker }} Overrides - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Override Detail: {{ ticker }}</h1>
+    <a href="/overrides/" class="btn btn-secondary">Back to List</a>
+</div>
+
+{% if overrides %}
+<p>{{ overrides|length }} override(s)</p>
+
+{% for o in overrides %}
+{% set result = o.get('result', {}) %}
+{% set doc = o.get('documentation', {}) %}
+<div class="card">
+    <h2>Override #{{ loop.index }} — {{ o.get('timestamp', '?')[:19] }}</h2>
+    <table class="table-compact">
+        <tr><td>Type</td><td>{{ o.get('override_type', '?') }}</td></tr>
+        <tr><td>Conviction</td><td>{{ doc.get('conviction', '?') }}</td></tr>
+        {% if doc.get('what_model_misses') %}
+        <tr><td>Model misses</td><td>{{ doc.what_model_misses }}</td></tr>
+        {% endif %}
+        {% if doc.get('what_would_prove_wrong') %}
+        <tr><td>Falsifiable</td><td>{{ doc.what_would_prove_wrong }}</td></tr>
+        {% endif %}
+        {% if doc.get('evidence') %}
+        <tr><td>Evidence</td><td>
+            <ul>{% for ev in doc.evidence %}<li>{{ ev }}</li>{% endfor %}</ul>
+        </td></tr>
+        {% endif %}
+        <tr><td>Base score</td><td>{{ result.get('base_composite', 'N/A') }}</td></tr>
+        <tr><td>Final score</td><td>{{ result.get('final_composite', 'N/A') }}</td></tr>
+        <tr><td>Impact</td><td>{{ result.get('percentile_impact', 'N/A') }}</td></tr>
+        {% if result.get('recommendation_changed') %}
+        <tr><td>Rec change</td><td>{{ result.get('base_recommendation') }} &rarr; {{ result.get('final_recommendation') }}</td></tr>
+        {% endif %}
+    </table>
+</div>
+{% endfor %}
+{% else %}
+<p class="text-muted">No overrides found for {{ ticker }}.</p>
+{% endif %}
+{% endblock %}

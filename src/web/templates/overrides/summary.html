@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Override Summary - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Override Summary</h1>
+    <a href="/overrides/" class="btn btn-secondary">View All</a>
+</div>
+
+{% if stats %}
+<div class="dashboard-grid">
+    <div class="card">
+        <h2>Overview</h2>
+        <table class="table-compact">
+            <tr><td>Total overrides</td><td><strong>{{ stats.get('total_overrides', 0) }}</strong></td></tr>
+            <tr><td>Avg percentile impact</td><td>{{ "%.1f"|format(stats.get('avg_percentile_impact', 0)) }}pt</td></tr>
+            <tr><td>Recommendation changes</td><td>{{ stats.get('recommendation_changes', 0) }}</td></tr>
+            <tr><td>Extreme overrides</td><td>{{ stats.get('extreme_overrides', 0) }}</td></tr>
+            <tr><td>Guardrail violations</td><td>{{ stats.get('guardrail_violations', 0) }}</td></tr>
+        </table>
+    </div>
+
+    {% if stats.get('by_type') %}
+    <div class="card">
+        <h2>By Type</h2>
+        <table class="table-compact">
+            {% for t, c in stats.by_type.items() %}
+            <tr><td>{{ t }}</td><td>{{ c }}</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+
+    {% if stats.get('by_conviction') %}
+    <div class="card">
+        <h2>By Conviction</h2>
+        <table class="table-compact">
+            {% for cv, c in stats.by_conviction.items() %}
+            <tr><td>{{ cv }}</td><td>{{ c }}</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No override data available.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Add Stocks - Stock Analysis{% endblock %}
+
+{% block content %}
+<h1>Add Stocks to Universe</h1>
+
+<div class="card">
+    <form method="post" action="/universe/add">
+        <div class="form-group">
+            <label for="tickers">Ticker Symbols</label>
+            <input type="text" id="tickers" name="tickers"
+                   placeholder="e.g. TSLA META AMD" class="form-input"
+                   required autofocus>
+            <p class="form-help">Space or comma-separated. Company info will be fetched from Yahoo Finance.</p>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Stocks</button>
+        <a href="/universe/" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

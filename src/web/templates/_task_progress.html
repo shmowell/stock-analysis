@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ task_name }} - Running{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <h1 id="task-title">{{ task_name }}</h1>
+    <div class="spinner" id="spinner"></div>
+    <p id="task-status" class="text-muted">Running...</p>
+    <p id="task-error" class="text-red" style="display:none;"></p>
+    <a id="task-redirect" href="{{ redirect_to }}" class="btn btn-primary" style="display:none;">Continue</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var taskId = "{{ task_id }}";
+    var redirectTo = "{{ redirect_to }}";
+
+    function poll() {
+        fetch("/api/task/" + taskId)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === "completed") {
+                    document.getElementById("spinner").style.display = "none";
+                    document.getElementById("task-status").textContent = data.result || "Done!";
+                    document.getElementById("task-redirect").style.display = "inline-block";
+                    // Auto-redirect after 1 second
+                    setTimeout(function() { window.location.href = redirectTo; }, 1000);
+                } else if (data.status === "failed") {
+                    document.getElementById("spinner").style.display = "none";
+                    document.getElementById("task-status").textContent = "Failed";
+                    document.getElementById("task-error").textContent = data.error || "Unknown error";
+                    document.getElementById("task-error").style.display = "block";
+                    document.getElementById("task-redirect").style.display = "inline-block";
+                } else {
+                    setTimeout(poll, 2000);
+                }
+            })
+            .catch(function() {
+                setTimeout(poll, 3000);
+            });
+    }
+
+    poll();
+})();
+</script>
+{% endblock %}

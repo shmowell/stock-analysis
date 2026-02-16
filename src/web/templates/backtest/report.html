@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Backtest Report - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Backtest Report</h1>
+    <a href="/backtest/" class="btn btn-secondary">New Backtest</a>
+</div>
+
+{% if report_text %}
+<p class="text-muted">File: {{ report_file }}</p>
+<pre class="report-pre">{{ report_text }}</pre>
+
+{% if all_reports|length > 1 %}
+<div class="card">
+    <h2>All Reports</h2>
+    <ul>
+        {% for r in all_reports %}
+        <li>{{ r }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% else %}
+<p class="text-muted">No backtest reports found. Run a backtest first.</p>
+{% endif %}
+{% endblock %}

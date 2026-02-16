@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Overrides - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Override History</h1>
+    <div class="page-actions">
+        <a href="/overrides/summary" class="btn btn-secondary">Summary Stats</a>
+        <a href="/overrides/apply" class="btn btn-primary">Apply Override</a>
+    </div>
+</div>
+
+{% if ticker_filter %}
+<p>Filtered by: <strong>{{ ticker_filter }}</strong> — <a href="/overrides/">Show all</a></p>
+{% endif %}
+
+{% if overrides %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Ticker</th>
+            <th>Type</th>
+            <th>Conviction</th>
+            <th>Impact</th>
+            <th>Rec Changed</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for o in overrides %}
+        {% set result = o.get('result', {}) %}
+        {% set doc = o.get('documentation', {}) %}
+        <tr>
+            <td>{{ o.get('timestamp', '?')[:19] }}</td>
+            <td><a href="/overrides/detail/{{ o.get('ticker', '') }}">{{ o.get('ticker', '?') }}</a></td>
+            <td>{{ o.get('override_type', '?') }}</td>
+            <td>{{ doc.get('conviction', '?') }}</td>
+            <td>
+                {% if result.get('percentile_impact') is not none %}
+                    {{ "%+.1f"|format(result.percentile_impact) }}pt
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+            <td>
+                {% if result.get('recommendation_changed') %}
+                    <span class="badge badge-warn">YES</span>
+                {% else %}
+                    no
+                {% endif %}
+            </td>
+            <td><a href="/overrides/detail/{{ o.get('ticker', '') }}">Detail</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted">No overrides recorded yet.</p>
+{% endif %}
+{% endblock %}

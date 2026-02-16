@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Stock Analysis{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-brand">Stock Analysis v2.0</div>
+        <div class="nav-links">
+            <a href="/" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
+            <a href="/scores/" class="{% if request.path.startswith('/scores') %}active{% endif %}">Scores</a>
+            <a href="/universe/" class="{% if request.path.startswith('/universe') %}active{% endif %}">Universe</a>
+            <a href="/overrides/" class="{% if request.path.startswith('/overrides') %}active{% endif %}">Overrides</a>
+            <a href="/backtest/" class="{% if request.path.startswith('/backtest') %}active{% endif %}">Backtest</a>
+            <a href="/data/status" class="{% if request.path.startswith('/data') %}active{% endif %}">Data Status</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <span>Stock Analysis Framework v2.0</span>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

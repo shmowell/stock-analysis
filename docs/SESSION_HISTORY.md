@@ -4,6 +4,51 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16: Web GUI + Score Explainability ✅
+
+**Completed Tasks:**
+- Built full web GUI application (Flask-based) with dashboard, scores, universe, overrides, backtest, and data status pages
+- Diagnosed AMD showing 50.0 across all pillars (missing data in DB, silent default)
+- Implemented score explainability: sub-component breakdowns now flow through entire pipeline to web UI
+- Added data status visibility: stocks with missing data show warning banners and badges
+
+**Files Created:**
+- `run_web.py` — Web app entry point
+- `src/web/__init__.py` — Flask app factory
+- `src/web/config.py` — Web configuration
+- `src/web/tasks.py` — Background task system
+- `src/web/routes/` — All route blueprints (scores, dashboard, universe, overrides, backtest, data, api)
+- `src/web/templates/` — All Jinja2 templates (base, dashboard, scores/list, scores/detail, scores/report, universe/*, overrides/*, backtest/*, data/status, _task_progress)
+- `src/web/static/css/style.css` — Full stylesheet with score bars, sub-score bars, data warnings
+- `src/web/static/js/app.js` — Client-side JS
+- `tests/test_web/` — Web route tests (conftest + 18 route tests)
+
+**Files Modified:**
+- `src/calculators/sentiment.py` — Changed `calculate_sentiment_score()` and `calculate_stock_specific_sentiment()` to return dicts with sub-component scores (market/stock sentiment, short interest, revision, consensus, insider)
+- `src/scoring/pipeline.py` — Preserve sub-component data from all 3 calculators; add `data_status` per stock; enrich `persist_to_json()` with `sub_components` and `data_status`; populate existing `value_score`/`quality_score`/`growth_score` DB columns in `persist_to_db()`; fix `_validate_scores` to only check pillar keys
+- `tests/test_sentiment.py` — Updated 5 tests for new dict return type
+- `tests/test_market_sentiment.py` — Updated 1 test for new dict return type
+
+**Technical Decisions:**
+1. Sentiment calculator returns `Dict[str, Optional[float]]` instead of `Optional[float]` — includes `sentiment_score`, `market_sentiment`, `stock_sentiment`, and 4 stock-specific sub-scores. Convenience function `calculate_sentiment()` still returns `float` for backward compat.
+2. Sub-component data stored as sibling keys (`fundamental_detail`, `technical_detail`, `sentiment_detail`, `data_status`) alongside the existing `fundamental`/`technical`/`sentiment` aggregates in `pillar_scores`. This avoids breaking the composite calculator which reads only the 3 aggregate keys.
+3. `_validate_scores` updated to only iterate `_PILLAR_KEYS` tuple instead of all dict keys, preventing crashes on non-numeric detail dicts.
+4. No DB migration needed — `value_score`, `quality_score`, `growth_score` columns already existed in `StockScore` model but were never populated.
+5. JSON output enriched with `sub_components` and `data_status` — web UI reads these for breakdown display.
+
+**Issues Resolved:**
+- AMD 50.0 scores now show clear "Data gaps detected" warning explaining the defaults
+- Sub-component breakdown cards now render for all stocks with data (fundamental: value/quality/growth; technical: momentum/trend/volume/rel-strength/RSI/multi-speed; sentiment: market/stock + 4 sub-scores)
+- Dead "Sub-Components" card in detail template replaced with live, data-driven breakdown
+
+**Test Results:**
+- 460 tests passing (up from 448)
+- 12 new web tests + updated 6 existing sentiment tests
+
+**Git Commit:** (pending)
+
+---
+
 ## Session 2026-02-15: Phase 5 Implementation — Backtesting Framework ✅
 
 **Completed Tasks:**

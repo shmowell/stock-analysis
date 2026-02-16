@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Daily Report - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Daily Report</h1>
+    <form method="post" action="/scores/calculate" style="display:inline">
+        <button type="submit" class="btn btn-primary">Generate New Report</button>
+    </form>
+</div>
+
+{% if report_text %}
+<p class="text-muted">File: {{ report_file }}</p>
+<pre class="report-pre">{{ report_text }}</pre>
+{% else %}
+<p class="text-muted">No reports found. Run the daily report first.</p>
+{% endif %}
+{% endblock %}

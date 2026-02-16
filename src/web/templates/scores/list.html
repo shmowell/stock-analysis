@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Scores - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Stock Scores</h1>
+    <div class="page-actions">
+        <form method="post" action="/scores/calculate" style="display:inline">
+            <button type="submit" class="btn btn-primary">Recalculate</button>
+        </form>
+        <a href="/scores/report" class="btn btn-secondary">View Report</a>
+    </div>
+</div>
+
+{% if calc_date %}
+<p class="text-muted">Calculated: {{ calc_date }}</p>
+{% endif %}
+
+{% if scores %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Rank</th>
+            <th>Ticker</th>
+            <th>Recommendation</th>
+            <th>Composite</th>
+            <th>Fundamental</th>
+            <th>Technical</th>
+            <th>Sentiment</th>
+            <th>Change</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in scores %}
+        {% set prev = previous.get(s.ticker, {}) %}
+        {% set chg = (s.final_composite_score|float - prev.get('composite_score', s.final_composite_score|float))|round(1) %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+                <a href="/scores/{{ s.ticker }}">{{ s.ticker }}</a>
+                {% if data_statuses and s.ticker in data_statuses %}
+                <span class="badge badge-warn" title="Missing data for some pillars">!</span>
+                {% endif %}
+            </td>
+            <td><span class="rec rec-{{ s.recommendation|lower|replace(' ', '-') }}">{{ s.recommendation }}</span></td>
+            <td>{{ "%.1f"|format(s.final_composite_score|float) }}</td>
+            <td>{{ "%.1f"|format(s.fundamental_score|float) }}</td>
+            <td>{{ "%.1f"|format(s.technical_score|float) }}</td>
+            <td>{{ "%.1f"|format(s.sentiment_score|float) }}</td>
+            <td class="{% if chg > 0 %}text-green{% elif chg < 0 %}text-red{% endif %}">
+                {% if chg != 0 %}{{ "%+.1f"|format(chg) }}{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted">No scores available. Run the scoring pipeline first.</p>
+{% endif %}
+{% endblock %}

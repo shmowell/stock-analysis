@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}{{ stock.ticker }} - Stock Analysis{% endblock %}
+
+{% macro score_bar(label, value, css_class='', weight='') %}
+<div class="score-bar-row sub-score-bar-row">
+    <span class="score-label">{{ label }}{% if weight %} <span class="text-muted">({{ weight }})</span>{% endif %}</span>
+    <div class="score-bar-track">
+        {% if value is not none %}
+        <div class="score-bar-fill {{ css_class }}" style="width: {{ value|float }}%"></div>
+        {% endif %}
+    </div>
+    {% if value is not none %}
+    <span class="score-value">{{ "%.1f"|format(value|float) }}</span>
+    {% else %}
+    <span class="score-value score-none">--</span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ stock.ticker }} — {{ stock.company_name or '' }}</h1>
+    <a href="/overrides/apply?ticker={{ stock.ticker }}" class="btn btn-secondary">Apply Override</a>
+</div>
+
+<p class="text-muted">{{ stock.sector or '' }} | {{ stock.industry or '' }}
+    {% if stock.market_cap %}
+        | ${{ "%.1f"|format(stock.market_cap|float / 1e9) }}B
+    {% endif %}
+</p>
+
+{% if data_status and 'no_data' in data_status.values() %}
+<div class="flash flash-warning data-warning">
+    <strong>Data gaps detected</strong> &mdash;
+    {% for pillar, status in data_status.items() %}
+        {% if status == 'no_data' %}
+        <span>{{ pillar|capitalize }} (defaulted to 50.0)</span>{% if not loop.last %}, {% endif %}
+        {% endif %}
+    {% endfor %}
+    <br><span class="text-muted">Scores of 50.0 indicate missing data, not a calculated assessment.</span>
+</div>
+{% endif %}
+
+{% if score %}
+<div class="detail-grid">
+    <div class="card">
+        <h2>Composite Score</h2>
+        <div class="big-number">{{ "%.1f"|format(score.final_composite_score|float) }}</div>
+        <p><span class="rec rec-{{ score.recommendation|lower|replace(' ', '-') }}">{{ score.recommendation }}</span></p>
+        <p class="text-muted">Calculated: {{ score.calculation_date }}</p>
+    </div>
+
+    <div class="card">
+        <h2>Pillar Scores</h2>
+        <div class="score-bars">
+            <div class="score-bar-row">
+                <span class="score-label">Fundamental (45%)</span>
+                <div class="score-bar-track">
+                    <div class="score-bar-fill" style="width: {{ score.fundamental_score|float }}%"></div>
+                </div>
+                <span class="score-value">{{ "%.1f"|format(score.fundamental_score|float) }}</span>
+            </div>
+            <div class="score-bar-row">
+                <span class="score-label">Technical (35%)</span>
+                <div class="score-bar-track">
+                    <div class="score-bar-fill score-bar-tech" style="width: {{ score.technical_score|float }}%"></div>
+                </div>
+                <span class="score-value">{{ "%.1f"|format(score.technical_score|float) }}</span>
+            </div>
+            <div class="score-bar-row">
+                <span class="score-label">Sentiment (20%)</span>
+                <div class="score-bar-track">
+                    <div class="score-bar-fill score-bar-sent" style="width: {{ score.sentiment_score|float }}%"></div>
+                </div>
+                <span class="score-value">{{ "%.1f"|format(score.sentiment_score|float) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Sub-component breakdown cards #}
+<div class="detail-grid">
+    {# Fundamental Breakdown #}
+    <div class="card">
+        <h2>Fundamental Breakdown</h2>
+        {% set fund = sub_components.get('fundamental', {}) if sub_components else {} %}
+        {% if data_status.get('fundamental') == 'no_data' %}
+        <p class="score-none">No fundamental data available for this stock.</p>
+        {% elif fund %}
+        <div class="score-bars">
+            {{ score_bar('Value', fund.get('value_score'), '', '33%') }}
+            {{ score_bar('Quality', fund.get('quality_score'), '', '33%') }}
+            {{ score_bar('Growth', fund.get('growth_score'), '', '34%') }}
+        </div>
+        {% else %}
+        <p class="text-muted">No breakdown data available.</p>
+        {% endif %}
+    </div>
+
+    {# Technical Breakdown #}
+    <div class="card">
+        <h2>Technical Breakdown</h2>
+        {% set tech = sub_components.get('technical', {}) if sub_components else {} %}
+        {% if data_status.get('technical') == 'no_data' %}
+        <p class="score-none">No technical data available for this stock.</p>
+        {% elif tech %}
+        <div class="score-bars">
+            {{ score_bar('Momentum', tech.get('momentum_score'), 'score-bar-tech', '35%') }}
+            {{ score_bar('Trend', tech.get('trend_score'), 'score-bar-tech', '25%') }}
+            {{ score_bar('Volume-Qual', tech.get('volume_qualified_score'), 'score-bar-tech', '20%') }}
+            {{ score_bar('Rel Strength', tech.get('relative_strength_score'), 'score-bar-tech', '10%') }}
+            {{ score_bar('RSI', tech.get('rsi_score'), 'score-bar-tech', '5%') }}
+            {{ score_bar('Multi-Speed', tech.get('multi_speed_score'), 'score-bar-tech', '5%') }}
+        </div>
+        {% else %}
+        <p class="text-muted">No breakdown data available.</p>
+        {% endif %}
+    </div>
+
+    {# Sentiment Breakdown #}
+    <div class="card">
+        <h2>Sentiment Breakdown</h2>
+        {% set sent = sub_components.get('sentiment', {}) if sub_components else {} %}
+        {% if data_status.get('sentiment') == 'no_data' %}
+        <p class="score-none">No sentiment data available for this stock.</p>
+        {% elif sent %}
+        <div class="score-bars">
+            {{ score_bar('Market Sentiment', sent.get('market_sentiment'), 'score-bar-sent', '40%') }}
+            {{ score_bar('Stock Sentiment', sent.get('stock_sentiment'), 'score-bar-sent', '60%') }}
+        </div>
+        <h3 class="sub-section-header">Stock Sentiment Detail</h3>
+        <div class="score-bars">
+            {{ score_bar('Short Interest', sent.get('short_interest_score'), 'score-bar-sent') }}
+            {{ score_bar('Analyst Revision', sent.get('revision_score'), 'score-bar-sent') }}
+            {{ score_bar('Analyst Consensus', sent.get('consensus_score'), 'score-bar-sent') }}
+            {{ score_bar('Insider Activity', sent.get('insider_score'), 'score-bar-sent') }}
+        </div>
+        {% else %}
+        <p class="text-muted">No breakdown data available.</p>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<p class="text-muted">No score data available for this stock.</p>
+{% endif %}
+
+<a href="/scores/" class="link-small">Back to all scores</a>
+{% endblock %}
