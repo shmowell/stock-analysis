@@ -1,6 +1,7 @@
 """Score viewing and calculation routes."""
 
 import json
+from datetime import date, timedelta
 from pathlib import Path
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 
@@ -81,6 +82,62 @@ def score_list():
         calc_date=calc_date,
         data_statuses=data_statuses,
     )
+
+
+@bp.route('/<ticker>/chart-data')
+def chart_data(ticker):
+    """JSON endpoint for price history and score trend data."""
+    from database import get_db_session
+    from database.models import PriceData, StockScore
+
+    ticker = ticker.upper()
+    six_months_ago = date.today() - timedelta(days=180)
+
+    result = {'price': {}, 'scores': {}}
+
+    try:
+        with get_db_session() as session:
+            # Price history (last 6 months)
+            prices = (
+                session.query(PriceData.date, PriceData.close)
+                .filter(PriceData.ticker == ticker, PriceData.date >= six_months_ago)
+                .order_by(PriceData.date)
+                .all()
+            )
+            if prices:
+                dates = [p.date.isoformat() for p in prices]
+                closes = [float(p.close) for p in prices]
+                current = closes[-1]
+                prev = closes[-2] if len(closes) >= 2 else current
+                change = current - prev
+                change_pct = (change / prev * 100) if prev else 0
+                result['price'] = {
+                    'current': round(current, 2),
+                    'change_1d': round(change, 2),
+                    'change_1d_pct': round(change_pct, 2),
+                    'dates': dates,
+                    'closes': closes,
+                }
+
+            # Score history (all available dates)
+            score_rows = (
+                session.query(StockScore)
+                .filter(StockScore.ticker == ticker)
+                .order_by(StockScore.calculation_date)
+                .all()
+            )
+            if score_rows:
+                result['scores'] = {
+                    'dates': [s.calculation_date.isoformat() for s in score_rows],
+                    'fundamental': [float(s.fundamental_score) if s.fundamental_score is not None else None for s in score_rows],
+                    'technical': [float(s.technical_score) if s.technical_score is not None else None for s in score_rows],
+                    'sentiment': [float(s.sentiment_score) if s.sentiment_score is not None else None for s in score_rows],
+                    'composite': [float(s.final_composite_score) if s.final_composite_score is not None else None for s in score_rows],
+                }
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    return jsonify(result)
 
 
 @bp.route('/<ticker>')

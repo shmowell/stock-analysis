@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-16 (Score explainability text module)
+**Last Updated:** 2026-02-16 (Price display & trend charts)
 **Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
-**Status:** Phases 1-5 complete. Web GUI live. Score explainability text complete — 15 human-readable explanations render on each stock detail page showing raw metrics + percentile context.
+**Status:** Phases 1-5 complete. Web GUI live. Stock detail pages now show current price with 1-day change, 6-month price chart, and pillar score trend chart (Chart.js).
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -78,6 +78,7 @@
 - ✅ AJAX recalculate with in-page toast notification (no more redirect to progress page)
 - ✅ Single-stock recalculate button on detail page (refreshes one ticker, re-scores universe)
 - ✅ Score explainability text: `ScoreExplainer` reads raw DB metrics, generates human-readable text for all 15 sub-components, wired into detail page (38 tests)
+- ✅ Price display & trend charts: current price + 1-day change, 6-month price chart, pillar score trend chart (Chart.js v4)
 - ⏳ Auto-collect data when adding a stock (CLI + web UI)
 
 **Current Database:**
@@ -214,4 +215,4 @@ python scripts/calculate_scores.py
 **Phase 3 Progress: 100% COMPLETE**
 **Phase 4 Progress: 100% COMPLETE**
 **Phase 5 Progress: 100% COMPLETE**
-**Phase 6 Progress: Web GUI + Explainability + None propagation COMPLETE, auto-collect on add pending**
+**Phase 6 Progress: Web GUI + Explainability + None propagation + Price/Trend charts COMPLETE, auto-collect on add pending**

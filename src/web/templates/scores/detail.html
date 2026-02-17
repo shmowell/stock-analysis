@@ -52,8 +52,16 @@
 </div>
 {% endif %}
 
+{# Price + Composite + Pillar row #}
 {% if score %}
-<div class="detail-grid">
+<div class="detail-grid detail-grid-3">
+    <div class="card">
+        <h2>Price</h2>
+        <div id="price-display">
+            <span class="text-muted" style="font-size:13px;">Loading...</span>
+        </div>
+    </div>
+
     <div class="card">
         <h2>Composite Score</h2>
         {% if score.final_composite_score is not none %}
@@ -110,6 +118,22 @@
                 <span class="score-value score-none">N/A</span>
                 {% endif %}
             </div>
+        </div>
+    </div>
+</div>
+
+{# Charts row #}
+<div class="detail-grid">
+    <div class="card">
+        <h2>Price History (6 months)</h2>
+        <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h2>Score Trends</h2>
+        <div class="chart-container">
+            <canvas id="scoreChart"></canvas>
         </div>
     </div>
 </div>
@@ -189,8 +213,10 @@
 
 {% block scripts %}
 <script>
+var TICKER = "{{ stock.ticker }}";
+
+/* ---------- Recalculate button ---------- */
 function startCalc() {
-    var ticker = "{{ stock.ticker }}";
     var btn = document.getElementById('btn-recalc');
     btn.disabled = true;
     btn.textContent = 'Running...';
@@ -198,22 +224,20 @@ function startCalc() {
     var toast = document.getElementById('calc-toast');
     var toastMsg = document.getElementById('calc-toast-msg');
     toast.style.display = 'flex';
-    toastMsg.textContent = 'Refreshing data for ' + ticker + '...';
+    toastMsg.textContent = 'Refreshing data for ' + TICKER + '...';
 
     fetch('/scores/calculate', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ticker: ticker})
+        body: JSON.stringify({ticker: TICKER})
     })
     .then(function(r) { return r.json(); })
-    .then(function(data) {
-        pollTask(data.task_id);
-    })
+    .then(function(data) { pollTask(data.task_id); })
     .catch(function(err) {
         toastMsg.textContent = 'Error: ' + err;
         toast.className = 'toast toast-error';
         btn.disabled = false;
-        btn.textContent = 'Recalculate ' + ticker;
+        btn.textContent = 'Recalculate ' + TICKER;
     });
 }
 
@@ -235,7 +259,7 @@ function pollTask(taskId) {
                 toast.querySelector('.spinner').style.display = 'none';
                 var btn = document.getElementById('btn-recalc');
                 btn.disabled = false;
-                btn.textContent = 'Recalculate {{ stock.ticker }}';
+                btn.textContent = 'Recalculate ' + TICKER;
             } else {
                 setTimeout(function() { pollTask(taskId); }, 2000);
             }
@@ -243,6 +267,175 @@ function pollTask(taskId) {
         .catch(function() {
             setTimeout(function() { pollTask(taskId); }, 3000);
         });
+}
+
+/* ---------- Charts ---------- */
+fetch('/scores/' + TICKER + '/chart-data')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        renderPrice(data.price);
+        renderPriceChart(data.price);
+        renderScoreChart(data.scores);
+    })
+    .catch(function(err) {
+        document.getElementById('price-display').innerHTML =
+            '<span class="text-muted">Price data unavailable</span>';
+    });
+
+function renderPrice(price) {
+    var el = document.getElementById('price-display');
+    if (!price || !price.current) {
+        el.innerHTML = '<span class="text-muted">No price data</span>';
+        return;
+    }
+    var positive = price.change_1d >= 0;
+    var sign = positive ? '+' : '';
+    var colorClass = positive ? 'text-green' : 'text-red';
+    el.innerHTML =
+        '<div class="price-current">$' + price.current.toFixed(2) + '</div>' +
+        '<div class="price-change ' + colorClass + '">' +
+            sign + price.change_1d.toFixed(2) +
+            ' (' + sign + price.change_1d_pct.toFixed(2) + '%)' +
+        '</div>';
+}
+
+function renderPriceChart(price) {
+    var canvas = document.getElementById('priceChart');
+    if (!canvas || !price || !price.dates || price.dates.length === 0) return;
+
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: price.dates,
+            datasets: [{
+                label: TICKER + ' Close',
+                data: price.closes,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37,99,235,0.08)',
+                fill: true,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHitRadius: 8,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) { return '$' + ctx.parsed.y.toFixed(2); }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        maxTicksLimit: 6,
+                        callback: function(val, i) {
+                            var d = this.getLabelForValue(val);
+                            return d.substring(5); /* MM-DD */
+                        }
+                    },
+                    grid: { display: false }
+                },
+                y: {
+                    ticks: {
+                        callback: function(val) { return '$' + val; }
+                    }
+                }
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
+    });
+}
+
+function renderScoreChart(scores) {
+    var canvas = document.getElementById('scoreChart');
+    if (!canvas || !scores || !scores.dates || scores.dates.length === 0) {
+        if (canvas) {
+            canvas.parentNode.innerHTML =
+                '<p class="text-muted" style="padding:1rem;">Score history will appear as more calculations are recorded.</p>';
+        }
+        return;
+    }
+
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: scores.dates,
+            datasets: [
+                {
+                    label: 'Composite',
+                    data: scores.composite,
+                    borderColor: '#1a1d23',
+                    borderWidth: 2.5,
+                    pointRadius: scores.dates.length <= 10 ? 4 : 0,
+                    pointHitRadius: 8,
+                    tension: 0.2
+                },
+                {
+                    label: 'Fundamental',
+                    data: scores.fundamental,
+                    borderColor: '#2563eb',
+                    borderWidth: 1.5,
+                    pointRadius: scores.dates.length <= 10 ? 3 : 0,
+                    pointHitRadius: 8,
+                    borderDash: [4, 2],
+                    tension: 0.2
+                },
+                {
+                    label: 'Technical',
+                    data: scores.technical,
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1.5,
+                    pointRadius: scores.dates.length <= 10 ? 3 : 0,
+                    pointHitRadius: 8,
+                    borderDash: [4, 2],
+                    tension: 0.2
+                },
+                {
+                    label: 'Sentiment',
+                    data: scores.sentiment,
+                    borderColor: '#06b6d4',
+                    borderWidth: 1.5,
+                    pointRadius: scores.dates.length <= 10 ? 3 : 0,
+                    pointHitRadius: 8,
+                    borderDash: [4, 2],
+                    tension: 0.2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12, padding: 10, font: { size: 11 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) { return ctx.dataset.label + ': ' + (ctx.parsed.y !== null ? ctx.parsed.y.toFixed(1) : 'N/A'); }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { maxTicksLimit: 8 },
+                    grid: { display: false }
+                },
+                y: {
+                    min: 0,
+                    max: 100,
+                    ticks: { stepSize: 25 }
+                }
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
+    });
 }
 </script>
 {% endblock %}

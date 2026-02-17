@@ -4,6 +4,31 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16f: Stock Price Display & Trend Charts ✅
+
+**Completed Tasks:**
+- Added stock price display to detail page (current price + 1-day change with green/red color coding)
+- Added 6-month price history chart (Chart.js line chart with blue fill area)
+- Added score trends chart (multi-line: composite solid, pillar scores dashed, color-matched to existing bar colors)
+- Created `/scores/<ticker>/chart-data` JSON API endpoint for async chart data loading
+- Integrated Chart.js v4 via CDN into base template
+- Restructured detail page top row to 3-column grid (Price | Composite Score | Pillar Scores)
+
+**Files Created/Modified:**
+- `src/web/routes/scores.py` — Added `chart_data()` route returning price history + score history JSON
+- `src/web/templates/scores/detail.html` — Added price card, chart canvases, and Chart.js rendering JS
+- `src/web/templates/base.html` — Added Chart.js v4 CDN script tag
+- `src/web/static/css/style.css` — Added `.detail-grid-3`, `.price-current`, `.price-change`, `.chart-container` styles
+
+**Technical Decisions:**
+1. Chart.js via CDN (not bundled) — keeps things simple, no build step needed, consistent with existing no-framework approach
+2. Async data loading via fetch — avoids slowing initial page render; price and charts load after page paint
+3. Score trend chart shows all available StockScore records — will become more useful as daily snapshots accumulate
+4. Price chart uses `pointRadius: 0` for clean appearance with ~180 data points
+5. Score chart uses `pointRadius: 3-4` when ≤10 data points, 0 otherwise for readability
+
+---
+
 ## Session 2026-02-16e: Score Explainability Text Module ✅
 
 **Completed Tasks:**

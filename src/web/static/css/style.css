@@ -298,3 +298,18 @@ legend { font-weight: 600; font-size: 14px; padding: 0 0.5rem; }
     padding-left: 130px;
     line-height: 1.4;
 }
+
+/* 3-column detail grid variant */
+.detail-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 800px) {
+    .detail-grid-3 { grid-template-columns: 1fr; }
+}
+
+/* Price display */
+.price-current { font-size: 32px; font-weight: 700; color: var(--text); }
+.price-change { font-size: 14px; font-weight: 600; margin-top: 0.25rem; }
+
+/* Chart containers */
+.chart-container { position: relative; height: 260px; }
