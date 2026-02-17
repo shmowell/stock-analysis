@@ -11,6 +11,7 @@ Usage:
     python scripts/collect_fmp_data.py
 """
 
+import argparse
 import sys
 from pathlib import Path
 project_root = Path(__file__).parent.parent
@@ -273,9 +274,12 @@ class FMPDataCollector:
 
         return fmp_data
 
-    def run(self) -> Dict[str, Any]:
+    def run(self, tickers: Optional[List[str]] = None) -> Dict[str, Any]:
         """
-        Main execution: collect FMP data for all active stocks.
+        Main execution: collect FMP data for stocks.
+
+        Args:
+            tickers: Specific tickers to process. If None, processes all active stocks.
 
         Returns:
             Dict with execution statistics
@@ -284,7 +288,8 @@ class FMPDataCollector:
         logger.info("FMP DATA COLLECTION - START")
         logger.info("=" * 80)
 
-        tickers = self.get_active_stocks()
+        if tickers is None:
+            tickers = self.get_active_stocks()
         self.stats['stocks_processed'] = len(tickers)
 
         for ticker in tickers:
@@ -322,8 +327,13 @@ class FMPDataCollector:
 
 def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(description="Collect FMP analyst data")
+    parser.add_argument('--ticker', nargs='+', help='Specific ticker(s) to process')
+    args = parser.parse_args()
+
+    tickers = [t.upper() for t in args.ticker] if args.ticker else None
     collector = FMPDataCollector()
-    stats = collector.run()
+    stats = collector.run(tickers=tickers)
 
     if stats['stocks_failed'] == 0:
         logger.info("\nAll stocks processed successfully!")

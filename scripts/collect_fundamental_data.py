@@ -9,6 +9,7 @@ Usage:
     python scripts/collect_fundamental_data.py
 """
 
+import argparse
 import sys
 from pathlib import Path
 project_root = Path(__file__).parent.parent
@@ -189,16 +190,20 @@ class FundamentalDataCollector:
             })
             return False
 
-    def run(self):
+    def run(self, tickers: Optional[List[str]] = None):
         """
-        Main execution: Collect and store fundamental data for all active stocks.
+        Main execution: Collect and store fundamental data for stocks.
+
+        Args:
+            tickers: Specific tickers to process. If None, processes all active stocks.
         """
         logger.info("=" * 80)
         logger.info("FUNDAMENTAL DATA COLLECTION - START")
         logger.info("=" * 80)
 
         # Get active stocks
-        tickers = self.get_active_stocks()
+        if tickers is None:
+            tickers = self.get_active_stocks()
 
         if not tickers:
             logger.warning("No active stocks found in database")
@@ -293,6 +298,16 @@ class FundamentalDataCollector:
                 logger.warning("✗ POOR - Significant data gaps, investigate errors")
 
 
-if __name__ == '__main__':
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(description="Collect fundamental data for stocks")
+    parser.add_argument('--ticker', nargs='+', help='Specific ticker(s) to process')
+    args = parser.parse_args()
+
+    tickers = [t.upper() for t in args.ticker] if args.ticker else None
     collector = FundamentalDataCollector()
-    collector.run()
+    collector.run(tickers=tickers)
+
+
+if __name__ == '__main__':
+    main()

@@ -9,6 +9,7 @@ Usage:
     python scripts/collect_sentiment_data.py
 """
 
+import argparse
 import sys
 from pathlib import Path
 project_root = Path(__file__).parent.parent
@@ -288,9 +289,12 @@ class SentimentDataCollector:
             logger.error(f"Error storing sentiment data for {data['ticker']}: {e}")
             return False
 
-    def run(self) -> Dict[str, Any]:
+    def run(self, tickers: Optional[List[str]] = None) -> Dict[str, Any]:
         """
-        Main execution: collect and store sentiment data for all active stocks.
+        Main execution: collect and store sentiment data for stocks.
+
+        Args:
+            tickers: Specific tickers to process. If None, processes all active stocks.
 
         Returns:
             Dict with execution statistics
@@ -299,7 +303,8 @@ class SentimentDataCollector:
         logger.info("SENTIMENT DATA COLLECTION - START")
         logger.info("=" * 80)
 
-        tickers = self.get_active_stocks()
+        if tickers is None:
+            tickers = self.get_active_stocks()
         self.stats['stocks_processed'] = len(tickers)
 
         for ticker in tickers:
@@ -345,8 +350,13 @@ class SentimentDataCollector:
 
 def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(description="Collect sentiment data for stocks")
+    parser.add_argument('--ticker', nargs='+', help='Specific ticker(s) to process')
+    args = parser.parse_args()
+
+    tickers = [t.upper() for t in args.ticker] if args.ticker else None
     collector = SentimentDataCollector()
-    stats = collector.run()
+    stats = collector.run(tickers=tickers)
 
     # Exit with appropriate code
     if stats['stocks_failed'] == 0:

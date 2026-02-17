@@ -107,6 +107,51 @@ class TestUniverseRoutes:
         response = client.post('/universe/add', data={'tickers': ''})
         assert response.status_code == 302
 
+    @patch('web.tasks.submit_task')
+    @patch('database.get_db_session')
+    @patch('data_collection.YahooFinanceCollector')
+    def test_add_stock_triggers_background_task(
+        self, mock_yf_cls, mock_db, mock_submit, client
+    ):
+        """Adding a new stock should submit a background collect+score task."""
+        mock_session = MagicMock()
+        mock_db.return_value = _mock_db_session(mock_session)
+
+        # Stock doesn't exist yet
+        mock_session.query.return_value.filter_by.return_value.first.return_value = None
+
+        # Yahoo Finance returns valid data
+        mock_yf_cls.return_value.get_stock_data.return_value = {
+            'company_info': {'name': 'Tesla', 'sector': 'Tech', 'industry': 'Auto'},
+            'fundamental': {'market_cap': 500e9},
+        }
+
+        mock_submit.return_value = 'abc123'
+
+        response = client.post('/universe/add', data={'tickers': 'TSLA'})
+        assert response.status_code == 302
+        assert '/api/task/abc123/progress' in response.location
+
+        mock_submit.assert_called_once()
+        task_name = mock_submit.call_args[0][0]
+        assert 'TSLA' in task_name
+
+    @patch('database.get_db_session')
+    def test_add_existing_stock_no_task(self, mock_db, client):
+        """Adding an already-active stock should not submit a task."""
+        mock_session = MagicMock()
+        mock_db.return_value = _mock_db_session(mock_session)
+
+        # Stock already exists and is active
+        existing = MagicMock()
+        existing.is_active = True
+        mock_session.query.return_value.filter_by.return_value.first.return_value = existing
+
+        response = client.post('/universe/add', data={'tickers': 'AAPL'})
+        assert response.status_code == 302
+        # Should redirect to universe list, not task progress
+        assert '/universe/' in response.location
+
     def test_remove_empty_ticker_redirects(self, client):
         response = client.post('/universe/remove', data={'ticker': ''})
         assert response.status_code == 302

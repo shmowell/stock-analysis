@@ -16,6 +16,7 @@ Usage:
     python scripts/calculate_technical_indicators.py
 """
 
+import argparse
 import sys
 from pathlib import Path
 project_root = Path(__file__).parent.parent
@@ -385,13 +386,18 @@ class TechnicalIndicatorCalculator:
             session.commit()
             logger.info(f"Updated sector_relative_6m for {updated} stocks")
 
-    def process_all_stocks(self) -> None:
-        """Calculate and store indicators for all active stocks."""
+    def process_all_stocks(self, tickers: Optional[List[str]] = None) -> None:
+        """Calculate and store indicators for stocks.
+
+        Args:
+            tickers: Specific tickers to process. If None, processes all active stocks.
+        """
         logger.info("=" * 60)
         logger.info("TECHNICAL INDICATOR CALCULATION")
         logger.info("=" * 60)
 
-        tickers = self.get_active_stocks()
+        if tickers is None:
+            tickers = self.get_active_stocks()
 
         for ticker in tickers:
             try:
@@ -430,8 +436,13 @@ class TechnicalIndicatorCalculator:
 
 def main():
     """Main execution function."""
+    parser = argparse.ArgumentParser(description="Calculate technical indicators")
+    parser.add_argument('--ticker', nargs='+', help='Specific ticker(s) to process')
+    args = parser.parse_args()
+
+    tickers = [t.upper() for t in args.ticker] if args.ticker else None
     calculator = TechnicalIndicatorCalculator()
-    calculator.process_all_stocks()
+    calculator.process_all_stocks(tickers=tickers)
 
 
 if __name__ == "__main__":

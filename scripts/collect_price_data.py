@@ -9,6 +9,7 @@ Usage:
     python scripts/collect_price_data.py
 """
 
+import argparse
 import sys
 from pathlib import Path
 project_root = Path(__file__).parent.parent
@@ -16,7 +17,7 @@ sys.path.insert(0, str(project_root / "src"))
 
 from datetime import datetime, date
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -186,12 +187,13 @@ class PriceDataCollector:
                 self.stats['errors'].append({'ticker': ticker, 'error': str(e)})
                 return {'inserted': 0, 'updated': 0}
 
-    def collect_all_stocks(self, period: str = "1y") -> Dict[str, Any]:
+    def collect_all_stocks(self, period: str = "1y", tickers: Optional[List[str]] = None) -> Dict[str, Any]:
         """
-        Collect price data for all active stocks.
+        Collect price data for active stocks.
 
         Args:
             period: Time period to collect (default: 1y)
+            tickers: Specific tickers to process. If None, processes all active stocks.
 
         Returns:
             Statistics about the collection process
@@ -200,7 +202,8 @@ class PriceDataCollector:
         logger.info("Starting price data collection for all stocks")
         logger.info("=" * 80)
 
-        tickers = self.get_active_stocks()
+        if tickers is None:
+            tickers = self.get_active_stocks()
 
         for ticker in tickers:
             logger.info(f"\nProcessing {ticker} ({self.stats['stocks_processed'] + 1}/{len(tickers)})")
@@ -238,13 +241,18 @@ class PriceDataCollector:
 
 def main():
     """Main execution function."""
+    parser = argparse.ArgumentParser(description="Collect price data for stocks")
+    parser.add_argument('--ticker', nargs='+', help='Specific ticker(s) to process')
+    args = parser.parse_args()
+
     collector = PriceDataCollector()
 
     try:
-        # Collect 2 years of price data for all stocks
+        # Collect 2 years of price data
         # Framework Section 4.2: 12-1 month momentum requires 13+ months
         # Using 2y to ensure sufficient data for all momentum calculations
-        stats = collector.collect_all_stocks(period="2y")
+        tickers = [t.upper() for t in args.ticker] if args.ticker else None
+        stats = collector.collect_all_stocks(period="2y", tickers=tickers)
 
         # Print summary
         collector.print_summary()

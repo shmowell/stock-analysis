@@ -1,6 +1,6 @@
 """Stock universe management routes."""
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 
 bp = Blueprint('universe', __name__)
 
@@ -112,7 +112,72 @@ def add():
         flash(f'Database error: {e}', 'error')
 
     if added:
-        flash(f'Run data collection to populate data for new stocks.', 'info')
+        # Auto-trigger data collection + scoring as background task
+        from web.tasks import submit_task
+
+        app = current_app._get_current_object()
+        tickers_to_collect = list(added)  # copy for closure
+
+        def _collect_and_score():
+            with app.app_context():
+                import subprocess, sys, logging
+                from database import get_db_session as get_session
+                from scoring import ScoringPipeline
+                from backtesting.snapshot_manager import SnapshotManager
+
+                task_logger = logging.getLogger(__name__)
+                project_root = app.config['PROJECT_ROOT']
+
+                COLLECT_SCRIPTS = [
+                    ('price_data',           'scripts/collect_price_data.py'),
+                    ('fundamental_data',     'scripts/collect_fundamental_data.py'),
+                    ('technical_indicators', 'scripts/calculate_technical_indicators.py'),
+                    ('sentiment_data',       'scripts/collect_sentiment_data.py'),
+                    ('market_sentiment',     'scripts/collect_market_sentiment.py'),
+                    ('fmp_estimate_snapshots', 'scripts/collect_fmp_data.py'),
+                ]
+
+                for table_key, script_path in COLLECT_SCRIPTS:
+                    full_path = project_root / script_path
+                    cmd = [sys.executable, str(full_path)]
+                    if 'market_sentiment' not in script_path:
+                        cmd.extend(['--ticker'] + tickers_to_collect)
+                    try:
+                        proc = subprocess.run(
+                            cmd, capture_output=True, text=True, timeout=300,
+                            cwd=str(project_root),
+                        )
+                        if proc.returncode != 0:
+                            task_logger.warning(
+                                "Collect %s failed (rc=%d): %s",
+                                table_key, proc.returncode,
+                                proc.stderr[-500:] if proc.stderr else '',
+                            )
+                    except subprocess.TimeoutExpired:
+                        task_logger.warning("Collect %s timed out", table_key)
+
+                # Score full universe
+                pipeline = ScoringPipeline(verbose=False)
+                with get_session() as session:
+                    result = pipeline.run(session)
+                    pipeline.persist_to_db(session, result)
+                    pipeline.persist_to_json(result)
+                    SnapshotManager().save(result)
+
+                return (
+                    f"Collected data for {', '.join(tickers_to_collect)} "
+                    f"and scored {len(result.composite_results)} stocks"
+                )
+
+        ticker_label = ', '.join(tickers_to_collect)
+        task_id = submit_task(
+            f'Add & Score {ticker_label}', _collect_and_score
+        )
+        return redirect(url_for(
+            'api.task_progress',
+            task_id=task_id,
+            redirect_to='/scores/',
+        ))
 
     return redirect(url_for('universe.universe_list'))
 
