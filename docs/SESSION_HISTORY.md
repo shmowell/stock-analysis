@@ -4,6 +4,30 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16e: Score Explainability Text Module ✅
+
+**Completed Tasks:**
+- Built `ScoreExplainer` class in `src/scoring/explainer.py` — reads raw metrics from DB tables (FundamentalData, TechnicalIndicator, SentimentData, MarketSentiment, PriceData, Stock) and generates human-readable explanation text for all 15 sub-components
+- Wired explainer into `score_detail()` route — explanations dict passed to template, graceful fallback on error
+- Created 38 unit tests covering all sub-components, edge cases, missing data fallbacks
+
+**Files Created:**
+- `src/scoring/explainer.py` — ScoreExplainer class with explain() method, per-sub-component explanation generators
+- `tests/test_explainer.py` — 38 tests (helpers, full integration, fundamental, technical, sentiment)
+
+**Files Modified:**
+- `src/web/routes/scores.py` — Added explainer call in score_detail(), passes `explanations` to template
+
+**Technical Decisions:**
+1. Explainer reads raw metrics from DB independently (not from pipeline) — keeps it decoupled and works for any stock at any time
+2. Each explanation combines raw metric values + percentile context + qualitative label (strong/moderate/weak)
+3. Graceful degradation: if explainer fails, page still renders without explanations (try/except with logging)
+4. Mirrors calculator logic for thresholds (e.g., DTC bands, volume adjustment bands, RSI 50 threshold) to accurately describe why scores are what they are
+
+**Tests:** 38 passing (all new)
+
+---
+
 ## Session 2026-02-16d: Fix Duplicates, Background Recalc, Single-Stock Recalc (Partial) ✅
 
 **Completed Tasks:**

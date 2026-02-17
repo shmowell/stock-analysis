@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-16 (Duplicate fix, background recalc, single-stock recalc)
+**Last Updated:** 2026-02-16 (Score explainability text module)
 **Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
-**Status:** Phases 1-5 complete. Web GUI live. Duplicate scores fixed. Recalculate runs in background with toast. Single-stock recalculate available on detail page. Score explainability text module not yet built.
+**Status:** Phases 1-5 complete. Web GUI live. Score explainability text complete — 15 human-readable explanations render on each stock detail page showing raw metrics + percentile context.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -77,7 +77,7 @@
 - ✅ Duplicate score prevention: UniqueConstraint on (ticker, calculation_date) + delete-before-insert
 - ✅ AJAX recalculate with in-page toast notification (no more redirect to progress page)
 - ✅ Single-stock recalculate button on detail page (refreshes one ticker, re-scores universe)
-- ⏳ Score explainability text (template wired up, needs explainer module)
+- ✅ Score explainability text: `ScoreExplainer` reads raw DB metrics, generates human-readable text for all 15 sub-components, wired into detail page (38 tests)
 - ⏳ Auto-collect data when adding a stock (CLI + web UI)
 
 **Current Database:**
@@ -95,19 +95,14 @@
 ## Next Session Goals
 
 **Priority:**
-1. Build score explainability text module (`src/scoring/explainer.py`)
-   - Read raw metrics from DB (fundamental, technical, sentiment data)
-   - Generate human-readable text for each sub-component explaining WHY a score is what it is
-   - Wire into `score_detail()` route via `explanations` dict
-   - Template already plumbed: `score_bar` macro accepts `explanation` param
-2. Run full test suite to verify all recent changes (duplicate fix, AJAX recalc, single-stock)
+1. Run full test suite to verify all recent changes (duplicate fix, AJAX recalc, single-stock, explainer)
+2. Auto-collect data + score when adding a stock (both CLI and web UI)
 
 **Backlog:**
-3. Auto-collect data + score when adding a stock (both CLI and web UI)
-4. Expand stock universe (more stocks for better percentile ranking)
-5. Extend price data history (more backtest coverage)
-6. Override alpha calculation (track override performance vs base model)
-7. Metric-level data availability (show "3/5 metrics" alongside each sub-component score)
+3. Expand stock universe (more stocks for better percentile ranking)
+4. Extend price data history (more backtest coverage)
+5. Override alpha calculation (track override performance vs base model)
+6. Metric-level data availability (show "3/5 metrics" alongside each sub-component score)
 
 ### Deferred Items
 - AAII Sentiment (requires premium API)
@@ -160,7 +155,7 @@ python scripts/calculate_scores.py
   - 130 FMP estimate snapshots (baseline for future revision detection)
 - **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min), FMP (250/day), DataHub.io (free)
 - **Python:** 3.12.9
-- **Tests:** pytest (467 passing)
+- **Tests:** pytest (505+ passing)
 
 ### Latest Scores (2026-02-14)
 | Rank | Ticker | Recommendation | Composite | Fund | Tech | Sent |
@@ -173,6 +168,7 @@ python scripts/calculate_scores.py
 | -- | AMD | INSUFFICIENT DATA | N/A | N/A | N/A | N/A |
 
 ### Key Module Files
+- `src/scoring/explainer.py` — ScoreExplainer (human-readable text for each sub-component score)
 - `src/web/` — Flask web GUI (dashboard, scores, universe, overrides, backtest, data status)
 - `src/scoring/pipeline.py` — ScoringPipeline (reusable scoring orchestration, sub-component data)
 - `src/backtesting/indicator_builder.py` — IndicatorBuilder (indicator math for any date)

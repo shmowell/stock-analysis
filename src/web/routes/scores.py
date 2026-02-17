@@ -153,6 +153,16 @@ def score_detail(ticker):
     sub_components = pillar_scores.get('sub_components', {})
     data_status = pillar_scores.get('data_status', {})
 
+    # Generate human-readable explanations for each sub-component
+    explanations = {}
+    try:
+        from scoring.explainer import ScoreExplainer
+        explainer = ScoreExplainer()
+        with get_db_session() as session:
+            explanations = explainer.explain(ticker, sub_components, session)
+    except Exception as e:
+        current_app.logger.warning(f'Explainer failed for {ticker}: {e}')
+
     return render_template(
         'scores/detail.html',
         stock=stock,
@@ -160,6 +170,7 @@ def score_detail(ticker):
         pillar=pillar_scores,
         sub_components=sub_components,
         data_status=data_status,
+        explanations=explanations,
     )
 
 
