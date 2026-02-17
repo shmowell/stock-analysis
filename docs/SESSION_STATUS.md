@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-16 (Price display & trend charts)
+**Last Updated:** 2026-02-16 (Historical score generation)
 **Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
-**Status:** Phases 1-5 complete. Web GUI live. Stock detail pages now show current price with 1-day change, 6-month price chart, and pillar score trend chart (Chart.js).
+**Status:** Phases 1-5 complete. Web GUI live. Historical scores backfilled (12 months of monthly checkpoints). Trend charts now show 15-date score history per stock.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -79,6 +79,7 @@
 - ✅ Single-stock recalculate button on detail page (refreshes one ticker, re-scores universe)
 - ✅ Score explainability text: `ScoreExplainer` reads raw DB metrics, generates human-readable text for all 15 sub-components, wired into detail page (38 tests)
 - ✅ Price display & trend charts: current price + 1-day change, 6-month price chart, pillar score trend chart (Chart.js v4)
+- ✅ Historical score generation: `scripts/generate_historical_scores.py` backfills monthly composite scores from price data (12 months, all 17 stocks)
 - ⏳ Auto-collect data when adding a stock (CLI + web UI)
 
 **Current Database:**
@@ -89,7 +90,7 @@
 - Sentiment data: 15 records (13 with FMP data, 2 Yahoo-only)
 - Market sentiment: 1 record (3/4 indicators)
 - FMP estimate snapshots: 130 records (baseline for revision tracking)
-- Stock scores: 15 records (persisted to DB + JSON)
+- Stock scores: 15 dates × 17 stocks (12 monthly backfilled + 3 daily)
 
 ---
 
@@ -143,6 +144,11 @@ python scripts/review_overrides.py summary
 python scripts/review_overrides.py list
 python scripts/review_overrides.py detail GOOGL
 
+# Generate historical scores (backfill monthly snapshots)
+python scripts/generate_historical_scores.py
+python scripts/generate_historical_scores.py --months 6
+python scripts/generate_historical_scores.py --dry-run
+
 # Apply override
 python scripts/apply_override.py
 
@@ -169,6 +175,7 @@ python scripts/calculate_scores.py
 | -- | AMD | INSUFFICIENT DATA | N/A | N/A | N/A | N/A |
 
 ### Key Module Files
+- `scripts/generate_historical_scores.py` — Backfill monthly composite scores from historical price data
 - `src/scoring/explainer.py` — ScoreExplainer (human-readable text for each sub-component score)
 - `src/web/` — Flask web GUI (dashboard, scores, universe, overrides, backtest, data status)
 - `src/scoring/pipeline.py` — ScoringPipeline (reusable scoring orchestration, sub-component data)
@@ -215,4 +222,4 @@ python scripts/calculate_scores.py
 **Phase 3 Progress: 100% COMPLETE**
 **Phase 4 Progress: 100% COMPLETE**
 **Phase 5 Progress: 100% COMPLETE**
-**Phase 6 Progress: Web GUI + Explainability + None propagation + Price/Trend charts COMPLETE, auto-collect on add pending**
+**Phase 6 Progress: Web GUI + Explainability + None propagation + Price/Trend charts + Historical scores COMPLETE, auto-collect on add pending**

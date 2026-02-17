@@ -4,6 +4,33 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16g: Historical Score Generation ✅
+
+**Completed Tasks:**
+- Created `scripts/generate_historical_scores.py` — backfills monthly composite scores using historical price data
+- Generated 12 monthly checkpoints (Feb 2025 – Jan 2026) for all 17 active stocks
+- Scores persisted to both `stock_scores` DB table and `data/snapshots/` JSON files
+- Web UI trend charts automatically pick up the 15-date history (12 monthly + 3 daily)
+
+**Files Created:**
+- `scripts/generate_historical_scores.py` — CLI tool with `--months`, `--dry-run`, `--overwrite` flags
+
+**Technical Decisions:**
+1. Technical scores are genuinely recalculated at each checkpoint using `IndicatorBuilder` on historical price data — these vary month-to-month
+2. Fundamental and sentiment scores are held constant (only current point-in-time data available) — noted clearly in output
+3. Composite score trends are primarily driven by technical changes (35% weight) and percentile re-ranking
+4. Reused existing `IndicatorBuilder`, `ScoringPipeline._prepare_*` methods, and all 3 calculators for consistency with live scoring
+5. Snapshot files saved alongside DB records for backtesting compatibility
+
+**Key Results:**
+- NVDA composite peaked at 70.6 (Jul 2025, tech=89.1) vs current 62.5
+- V was #1 ranked Mar-May 2025, CLVT consistently bottom
+- All 17 stocks scored at every checkpoint (sufficient price data coverage)
+
+**Git Commit:** See below
+
+---
+
 ## Session 2026-02-16f: Stock Price Display & Trend Charts ✅
 
 **Completed Tasks:**
