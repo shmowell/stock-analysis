@@ -4,6 +4,36 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16i: Auto-collect data when adding stocks ✅
+
+**Completed Tasks:**
+- Added `--ticker` flag to all 5 per-stock collection scripts (price, fundamental, technical indicators, sentiment, FMP)
+- CLI (`manage_universe.py add`) now auto-runs data collection + scoring after adding stocks; `--no-collect` flag to skip
+- Web UI (`/universe/add`) now auto-triggers background task for collection + scoring, redirecting to progress page
+- Fixed existing bug where `scores.py` passed `--ticker` to collection scripts but they silently ignored it
+- Removed `nul` Windows artifact file from repo root
+- 2 new web route tests added (background task trigger, existing stock skip)
+
+**Files Modified:**
+- `scripts/collect_price_data.py` — argparse + `tickers` param on `collect_all_stocks()`
+- `scripts/collect_fundamental_data.py` — argparse + `tickers` param on `run()`, extracted `main()`
+- `scripts/calculate_technical_indicators.py` — argparse + `tickers` param on `process_all_stocks()`
+- `scripts/collect_sentiment_data.py` — argparse + `tickers` param on `run()`
+- `scripts/collect_fmp_data.py` — argparse + `tickers` param on `run()`
+- `scripts/manage_universe.py` — `add_stocks()` returns list, new `collect_and_score()`, `--no-collect` flag
+- `src/web/routes/universe.py` — Background task auto-collect after add, redirect to progress page
+- `tests/test_web/test_routes.py` — 2 new tests for universe add auto-collect
+
+**Technical Decisions:**
+1. Collection scripts accept `--ticker` as `nargs='+'` so multiple tickers can be passed at once
+2. CLI runs collection scripts as subprocesses (same pattern as `daily_report.py`) rather than importing collector classes directly — keeps process isolation and consistent logging
+3. Web UI reuses existing `submit_task`/`_task_progress.html` infrastructure — no new task system needed
+4. Scoring always runs for full universe (even when adding one stock) to maintain correct percentile rankings
+
+**Git Commit:** `79d6562` - "feat: Auto-collect data and score when adding stocks"
+
+---
+
 ## Session 2026-02-16h: Score vs. Price Performance Analysis ✅
 
 **Completed Tasks:**

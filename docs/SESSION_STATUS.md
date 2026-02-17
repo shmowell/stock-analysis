@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-16 (Score vs. Price Performance Analysis)
+**Last Updated:** 2026-02-16 (Auto-collect on add)
 **Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
-**Status:** Phases 1-5 complete. Web GUI live. Historical scores backfilled. Score-vs-performance analysis dashboard and per-stock validation charts live at `/performance/`.
+**Status:** Phases 1-5 complete. Web GUI live. Historical scores backfilled. Score-vs-performance analysis dashboard live. Auto-collect on stock add complete (CLI + web).
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -81,7 +81,8 @@
 - ✅ Price display & trend charts: current price + 1-day change, 6-month price chart, pillar score trend chart (Chart.js v4)
 - ✅ Historical score generation: `scripts/generate_historical_scores.py` backfills monthly composite scores from price data (12 months, all 17 stocks)
 - ✅ Score vs. Price Performance: `ScorePerformanceAnalyzer` engine + `/performance/` dashboard + per-stock validation chart on detail page (35 tests)
-- ⏳ Auto-collect data when adding a stock (CLI + web UI)
+- ✅ Auto-collect on add: CLI `manage_universe.py add` auto-runs collection + scoring (with `--no-collect` opt-out); web `/universe/add` auto-triggers background task + progress page
+- ✅ `--ticker` flag on all 5 per-stock collection scripts (enables targeted collection)
 
 **Current Database:**
 - 16 active stocks across 7 sectors (AMD added but no data yet — will auto-collect on next Recalculate)
@@ -98,15 +99,13 @@
 ## Next Session Goals
 
 **Priority:**
-1. Auto-collect data + score when adding a stock (both CLI and web UI)
-2. Run full test suite to verify all recent changes
+1. Expand stock universe (more stocks for better percentile ranking — currently 16 too small for robust quintile analysis)
+2. Extend price data history (more backtest coverage)
 
 **Backlog:**
-3. Expand stock universe (more stocks for better percentile ranking — currently 15 too small for robust quintile analysis)
-4. Extend price data history (more backtest coverage)
-5. Override alpha calculation (track override performance vs base model)
-6. Metric-level data availability (show "3/5 metrics" alongside each sub-component score)
-7. Full-model composite backtest (currently only technical varies historically — as more snapshots accumulate, performance analysis will become more meaningful)
+3. Override alpha calculation (track override performance vs base model)
+4. Metric-level data availability (show "3/5 metrics" alongside each sub-component score)
+5. Full-model composite backtest (currently only technical varies historically — as more snapshots accumulate, performance analysis will become more meaningful)
 
 ### Deferred Items
 - AAII Sentiment (requires premium API)
@@ -135,9 +134,10 @@ python scripts/daily_report.py --ticker AAPL
 python scripts/run_backtest.py
 python scripts/run_backtest.py --start 2024-06-01 --end 2025-06-30
 
-# Manage universe
+# Manage universe (add auto-collects data + scores)
 python scripts/manage_universe.py list
 python scripts/manage_universe.py add TSLA META
+python scripts/manage_universe.py add TSLA --no-collect  # skip auto-collect
 python scripts/manage_universe.py remove DIS
 python scripts/manage_universe.py reactivate DIS
 
@@ -164,7 +164,7 @@ python scripts/calculate_scores.py
   - 130 FMP estimate snapshots (baseline for future revision detection)
 - **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min), FMP (250/day), DataHub.io (free)
 - **Python:** 3.12.9
-- **Tests:** pytest (540+ passing)
+- **Tests:** pytest (542+ passing)
 
 ### Latest Scores (2026-02-14)
 | Rank | Ticker | Recommendation | Composite | Fund | Tech | Sent |
@@ -213,11 +213,6 @@ python scripts/calculate_scores.py
    - 15-stock universe too small for robust quintile analysis
    - Full-model backtest requires accumulated daily snapshots
 
-6. **Adding stocks doesn't auto-collect data**
-   - `manage_universe.py add` and web UI only insert Stock row
-   - Data collection requires separate Recalculate or daily_report.py run
-   - Next session: make add auto-trigger collection + scoring
-
 ---
 
 **Phase 1 Progress: 100% COMPLETE**
@@ -225,4 +220,4 @@ python scripts/calculate_scores.py
 **Phase 3 Progress: 100% COMPLETE**
 **Phase 4 Progress: 100% COMPLETE**
 **Phase 5 Progress: 100% COMPLETE**
-**Phase 6 Progress: Web GUI + Explainability + None propagation + Price/Trend charts + Historical scores + Performance analysis COMPLETE, auto-collect on add pending**
+**Phase 6 Progress: Web GUI + Explainability + None propagation + Price/Trend charts + Historical scores + Performance analysis + Auto-collect on add COMPLETE**
