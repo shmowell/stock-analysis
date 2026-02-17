@@ -84,6 +84,11 @@ class StalenessChecker:
         'fmp_estimate_snapshots': (FMPEstimateSnapshot, FMPEstimateSnapshot.snapshot_date),
     }
 
+    # Tables whose data only arrives on market trading days (Mon-Fri).
+    # Staleness thresholds are automatically widened over weekends so that
+    # Friday's data isn't incorrectly flagged as stale on Saturday-Monday.
+    MARKET_DATA_TABLES = {'price_data', 'technical_indicators'}
+
     def __init__(
         self,
         cadences: Optional[Dict[str, int]] = None,
@@ -96,6 +101,26 @@ class StalenessChecker:
     def today(self) -> date:
         return self._today or date.today()
 
+    def _effective_max_age(self, table_key: str) -> int:
+        """Get effective max age in calendar days, widening for weekends on market data.
+
+        For market data tables, Friday's close is the latest available data
+        until Monday's close.  Without adjustment the 1-day cadence would
+        wrongly flag Friday data as stale on Saturday (age 1 is fine, but
+        Sunday = 2, Monday = 3).  We add the weekend gap so the threshold
+        stays meaningful.
+        """
+        base = self.cadences.get(table_key, 7)
+        if table_key in self.MARKET_DATA_TABLES:
+            weekday = self.today.weekday()  # 0=Mon … 6=Sun
+            if weekday == 0:      # Monday: Fri data is 3 calendar days old
+                return base + 2
+            elif weekday == 6:    # Sunday: Fri data is 2 calendar days old
+                return base + 1
+            elif weekday == 5:    # Saturday: Fri data is 1 calendar day old
+                return base + 1
+        return base
+
     def check_table(self, session: Session, table_key: str) -> StalenessResult:
         """Check staleness for a single table.
 
@@ -107,7 +132,7 @@ class StalenessChecker:
             StalenessResult for that table.
         """
         model_cls, date_col = self.TABLE_CONFIG[table_key]
-        max_age = self.cadences.get(table_key, 7)
+        max_age = self._effective_max_age(table_key)
 
         # Query latest date and count
         result = session.query(

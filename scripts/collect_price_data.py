@@ -249,12 +249,16 @@ def main():
         # Print summary
         collector.print_summary()
 
-        # Exit with error code if any errors occurred
-        if stats['errors']:
-            logger.warning(f"\nCompleted with {len(stats['errors'])} errors")
+        # Exit with error only if ALL stocks failed (no data collected)
+        if stats['errors'] and stats['records_inserted'] == 0:
+            logger.error(f"\nFailed: {len(stats['errors'])} errors, no data collected")
             sys.exit(1)
+        elif stats['errors']:
+            logger.warning(f"\nCompleted with {len(stats['errors'])} errors "
+                           f"({stats['records_inserted']} records collected)")
+            sys.exit(0)
         else:
-            logger.info("\n✅ Price data collection completed successfully!")
+            logger.info("\nPrice data collection completed successfully!")
             sys.exit(0)
 
     except KeyboardInterrupt:

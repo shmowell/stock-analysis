@@ -32,10 +32,11 @@ def refresh():
 
     def _run_refresh(force):
         with app.app_context():
-            import subprocess, sys
+            import subprocess, sys, logging
             from database import get_db_session
             from utils.staleness import StalenessChecker
 
+            logger = logging.getLogger(__name__)
             project_root = app.config['PROJECT_ROOT']
 
             REFRESH_SCRIPTS = [
@@ -56,6 +57,7 @@ def refresh():
                 tables_to_refresh = [s.table for s in staleness if s.stale]
 
             results = {}
+            errors = {}
             for table_key, script_path in REFRESH_SCRIPTS:
                 if table_key in tables_to_refresh:
                     full_path = project_root / script_path
@@ -66,12 +68,24 @@ def refresh():
                             cwd=str(project_root),
                         )
                         results[table_key] = proc.returncode == 0
+                        if proc.returncode != 0:
+                            errors[table_key] = proc.stderr[-500:] if proc.stderr else 'exit code ' + str(proc.returncode)
+                            logger.warning("Refresh %s failed (rc=%d): %s", table_key, proc.returncode, proc.stderr[-500:] if proc.stderr else '')
+                        else:
+                            logger.info("Refresh %s succeeded", table_key)
                     except subprocess.TimeoutExpired:
                         results[table_key] = False
+                        errors[table_key] = 'timed out after 300s'
+                        logger.warning("Refresh %s timed out", table_key)
 
             ok = sum(1 for v in results.values() if v)
             fail = sum(1 for v in results.values() if not v)
-            return f"Refreshed {ok} tables ({fail} failed)" if results else "All data is fresh"
+            if not results:
+                return "All data is fresh"
+            msg = f"Refreshed {ok} tables ({fail} failed)"
+            if errors:
+                msg += ". Errors: " + "; ".join(f"{k}: {v}" for k, v in errors.items())
+            return msg
 
     task_id = submit_task('Data Refresh', _run_refresh, force)
     return redirect(url_for('api.task_progress', task_id=task_id, redirect_to='/data/status'))

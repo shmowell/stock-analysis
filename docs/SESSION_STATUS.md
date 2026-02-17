@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-16 (Web GUI + Score Explainability)
+**Last Updated:** 2026-02-16 (Stale data refresh fix)
 **Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
-**Status:** Phases 1-5 complete. Web GUI live with score explainability and data status visibility.
+**Status:** Phases 1-5 complete. Web GUI live with score explainability and data status visibility. Stale data refresh button fixed for weekends.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -68,6 +68,9 @@
 - ✅ Sentiment calculator returns dict with sub-components
 - ✅ Pipeline preserves sub-component data through to JSON and DB persistence
 - ✅ 18 web route tests
+- ✅ Weekend-aware staleness checking for price_data and technical_indicators
+- ✅ Partial-success exit code in price collector (no longer fails on single ticker error)
+- ✅ Subprocess error logging in refresh task results
 - ⏳ AMD data collection issue (AMD is active but has no data rows — needs investigation)
 
 **Current Database:**
@@ -144,7 +147,7 @@ python scripts/calculate_scores.py
   - 130 FMP estimate snapshots (baseline for future revision detection)
 - **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min), FMP (250/day), DataHub.io (free)
 - **Python:** 3.12.9
-- **Tests:** pytest (460 passing: 332 core + 54 Phase 4 + 61 Phase 5 + 12 web + 1 explainability)
+- **Tests:** pytest (468 passing: 332 core + 54 Phase 4 + 61 Phase 5 + 12 web + 1 explainability + 8 weekend staleness)
 
 ### Latest Scores (2026-02-14)
 | Rank | Ticker | Recommendation | Composite | Fund | Tech | Sent |
@@ -180,7 +183,11 @@ python scripts/calculate_scores.py
    - Quarterly estimates require premium (annual only on free tier)
    - Revision detection requires 2+ collection runs (first run = baseline)
 
-4. **Backtest limited by data history**
+4. **Market holidays not handled in staleness checker**
+   - Weekend adjustment works (Sat/Sun/Mon), but holidays (e.g. President's Day) can still cause false stale flags
+   - Would require a trading calendar to fully solve
+
+5. **Backtest limited by data history**
    - Only 2 years of price data → ~12 months of testable checkpoints
    - 15-stock universe too small for robust quintile analysis
    - Full-model backtest requires accumulated daily snapshots

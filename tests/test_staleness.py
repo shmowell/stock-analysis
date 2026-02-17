@@ -82,16 +82,17 @@ class TestStalenessChecker:
 
     def test_check_table_stale(self):
         """Mock a DB query returning a stale date."""
-        checker = StalenessChecker(today=date(2026, 2, 14))
+        # Use a Wednesday to avoid weekend adjustment
+        checker = StalenessChecker(today=date(2026, 2, 11))
 
         session = MagicMock()
         # Mock the query chain: session.query().one() returns (date, count)
-        session.query.return_value.one.return_value = (date(2026, 2, 10), 7000)
+        session.query.return_value.one.return_value = (date(2026, 2, 5), 7000)
 
         result = checker.check_table(session, 'price_data')
         assert result.stale is True
-        assert result.age_days == 4
-        assert result.max_age_days == 1
+        assert result.age_days == 6
+        assert result.max_age_days == 1  # No weekend adjustment on Wednesday
         assert result.record_count == 7000
 
     def test_check_table_fresh(self):
@@ -154,6 +155,84 @@ class TestStalenessChecker:
         assert 'technical_indicators' in stale_names
         assert 'market_sentiment' in stale_names
         assert 'fundamental_data' not in stale_names
+
+    def test_price_data_fresh_on_saturday(self):
+        """Friday's price data should NOT be stale on Saturday."""
+        checker = StalenessChecker(today=date(2026, 2, 14))  # Saturday
+
+        session = MagicMock()
+        session.query.return_value.one.return_value = (date(2026, 2, 13), 7000)  # Friday
+
+        result = checker.check_table(session, 'price_data')
+        assert result.stale is False
+        assert result.age_days == 1
+        assert result.max_age_days == 2  # base 1 + 1 for Saturday
+
+    def test_price_data_fresh_on_sunday(self):
+        """Friday's price data should NOT be stale on Sunday."""
+        checker = StalenessChecker(today=date(2026, 2, 15))  # Sunday
+
+        session = MagicMock()
+        session.query.return_value.one.return_value = (date(2026, 2, 13), 7000)  # Friday
+
+        result = checker.check_table(session, 'price_data')
+        assert result.stale is False
+        assert result.age_days == 2
+        assert result.max_age_days == 2  # base 1 + 1 for Sunday
+
+    def test_price_data_fresh_on_monday(self):
+        """Friday's price data should NOT be stale on Monday."""
+        checker = StalenessChecker(today=date(2026, 2, 16))  # Monday
+
+        session = MagicMock()
+        session.query.return_value.one.return_value = (date(2026, 2, 13), 7000)  # Friday
+
+        result = checker.check_table(session, 'price_data')
+        assert result.stale is False
+        assert result.age_days == 3
+        assert result.max_age_days == 3  # base 1 + 2 for Monday
+
+    def test_price_data_stale_on_tuesday_with_friday_data(self):
+        """Friday's price data SHOULD be stale by Tuesday (Monday's data expected)."""
+        checker = StalenessChecker(today=date(2026, 2, 17))  # Tuesday
+
+        session = MagicMock()
+        session.query.return_value.one.return_value = (date(2026, 2, 13), 7000)  # Friday
+
+        result = checker.check_table(session, 'price_data')
+        assert result.stale is True
+        assert result.age_days == 4
+        assert result.max_age_days == 1  # No adjustment on Tuesday
+
+    def test_weekend_adjustment_does_not_affect_non_market_tables(self):
+        """Non-market tables like fundamental_data should not get weekend adjustment."""
+        checker = StalenessChecker(today=date(2026, 2, 16))  # Monday
+
+        session = MagicMock()
+        session.query.return_value.one.return_value = (date(2026, 1, 20), 500)
+
+        result = checker.check_table(session, 'fundamental_data')
+        assert result.max_age_days == 30  # No weekend adjustment
+
+    def test_effective_max_age_weekday(self):
+        """On a normal weekday, no adjustment is made."""
+        checker = StalenessChecker(today=date(2026, 2, 11))  # Wednesday
+        assert checker._effective_max_age('price_data') == 1
+        assert checker._effective_max_age('technical_indicators') == 3
+
+    def test_effective_max_age_weekend(self):
+        """Weekend/Monday should widen the threshold for market data."""
+        # Saturday
+        checker = StalenessChecker(today=date(2026, 2, 14))
+        assert checker._effective_max_age('price_data') == 2  # 1 + 1
+
+        # Sunday
+        checker = StalenessChecker(today=date(2026, 2, 15))
+        assert checker._effective_max_age('price_data') == 2  # 1 + 1
+
+        # Monday
+        checker = StalenessChecker(today=date(2026, 2, 16))
+        assert checker._effective_max_age('price_data') == 3  # 1 + 2
 
     def test_format_report(self):
         checker = StalenessChecker()

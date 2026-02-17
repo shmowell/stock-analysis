@@ -4,6 +4,32 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16b: Fix Stale Data Refresh for Price Data ✅
+
+**Completed Tasks:**
+- Diagnosed why "Refresh Stale Data" button appeared broken for price data
+- Fixed weekend-aware staleness checking for market data tables (price_data, technical_indicators)
+- Fixed overly strict exit code in `collect_price_data.py` (partial success now exits 0)
+- Added subprocess stderr logging and error detail surfacing in refresh task results
+
+**Root Cause:**
+The staleness checker used a 1 calendar-day threshold for price_data, but markets are closed on weekends. On Saturday/Sunday/Monday, Friday's data (age 2-3 days) was flagged stale. After refresh, Yahoo Finance returned the same Friday data → still flagged stale → button appeared broken.
+
+**Files Modified:**
+- `src/utils/staleness.py` — Added `MARKET_DATA_TABLES` set and `_effective_max_age()` method that widens thresholds on Sat (+1), Sun (+1), Mon (+2) for market data tables
+- `scripts/collect_price_data.py` — Changed exit code logic: exit 0 on partial success (some tickers errored but data was collected), exit 1 only when zero records collected
+- `src/web/routes/data.py` — Added `errors` dict tracking, subprocess stderr logging, and error detail in task result message
+- `tests/test_staleness.py` — Updated existing stale test to use a Wednesday date; added 8 new tests for weekend behavior
+
+**Technical Decisions:**
+1. Weekend adjustment via `_effective_max_age()` rather than trading-day calendar — simpler, handles 95% of cases. Market holidays remain a known limitation.
+2. Partial success = exit 0 in price collector — data WAS stored for successful tickers, so the refresh did work even if one ticker failed.
+3. Error messages surfaced in task result string — user can see what failed without checking server logs.
+
+**Tests:** 25 passing (was 17, added 8 weekend-specific tests)
+
+---
+
 ## Session 2026-02-16: Web GUI + Score Explainability ✅
 
 **Completed Tasks:**
