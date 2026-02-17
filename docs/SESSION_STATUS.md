@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-16 (None propagation for missing data)
+**Last Updated:** 2026-02-16 (Duplicate fix, background recalc, single-stock recalc)
 **Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
-**Status:** Phases 1-5 complete. Web GUI live. Missing data now shows N/A instead of fake 50.0 scores. Recalculate auto-detects stocks needing data collection.
+**Status:** Phases 1-5 complete. Web GUI live. Duplicate scores fixed. Recalculate runs in background with toast. Single-stock recalculate available on detail page. Score explainability text module not yet built.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -74,6 +74,10 @@
 - ✅ None propagation for missing data (no more fake 50.0 scores)
 - ✅ Per-stock coverage detection in StalenessChecker (auto-triggers data collection for new stocks)
 - ✅ Unscored stocks shown as INSUFFICIENT DATA with N/A in GUI
+- ✅ Duplicate score prevention: UniqueConstraint on (ticker, calculation_date) + delete-before-insert
+- ✅ AJAX recalculate with in-page toast notification (no more redirect to progress page)
+- ✅ Single-stock recalculate button on detail page (refreshes one ticker, re-scores universe)
+- ⏳ Score explainability text (template wired up, needs explainer module)
 - ⏳ Auto-collect data when adding a stock (CLI + web UI)
 
 **Current Database:**
@@ -91,15 +95,17 @@
 ## Next Session Goals
 
 **Priority:**
-1. Auto-collect data + score when adding a stock (both `manage_universe.py add` and web UI `/universe/add`)
-   - After inserting Stock row, run data collection scripts for that ticker
-   - Optionally trigger a scoring run afterward
-2. Expand stock universe (add more stocks for better percentile ranking)
+1. Build score explainability text module (`src/scoring/explainer.py`)
+   - Read raw metrics from DB (fundamental, technical, sentiment data)
+   - Generate human-readable text for each sub-component explaining WHY a score is what it is
+   - Wire into `score_detail()` route via `explanations` dict
+   - Template already plumbed: `score_bar` macro accepts `explanation` param
+2. Run full test suite to verify all recent changes (duplicate fix, AJAX recalc, single-stock)
 
-**Potential tasks:**
-3. Extend price data history (more backtest coverage)
-4. Full-model backtest (once snapshots accumulate over daily runs)
-5. Paper trading simulation with real-time tracking
+**Backlog:**
+3. Auto-collect data + score when adding a stock (both CLI and web UI)
+4. Expand stock universe (more stocks for better percentile ranking)
+5. Extend price data history (more backtest coverage)
 6. Override alpha calculation (track override performance vs base model)
 7. Metric-level data availability (show "3/5 metrics" alongside each sub-component score)
 

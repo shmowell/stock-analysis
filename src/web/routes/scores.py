@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 
 bp = Blueprint('scores', __name__)
 
@@ -165,72 +165,82 @@ def score_detail(ticker):
 
 @bp.route('/calculate', methods=['POST'])
 def calculate():
-    """Trigger score calculation as a background task."""
+    """Trigger score calculation as a background task.
+
+    Returns JSON with task_id for AJAX polling.
+    """
     from web.tasks import submit_task
 
-    skip_refresh = 'skip_refresh' in request.form
-    force_refresh = 'force_refresh' in request.form
+    data = request.get_json(silent=True) or {}
+    skip_refresh = data.get('skip_refresh', False)
+    force_refresh = data.get('force_refresh', False)
+    ticker = data.get('ticker')  # Optional: single-stock refresh
 
-    def _run_scoring(skip_refresh, force_refresh):
-        from database import get_db_session
-        from scoring import ScoringPipeline
-        from utils.staleness import StalenessChecker
-        from backtesting.snapshot_manager import SnapshotManager
-        import subprocess, sys
-
-        project_root = current_app.config['PROJECT_ROOT']
-
-        # Refresh data if needed
-        if not skip_refresh:
-            REFRESH_SCRIPTS = [
-                ('price_data',           'scripts/collect_price_data.py'),
-                ('fundamental_data',     'scripts/collect_fundamental_data.py'),
-                ('technical_indicators', 'scripts/calculate_technical_indicators.py'),
-                ('sentiment_data',       'scripts/collect_sentiment_data.py'),
-                ('market_sentiment',     'scripts/collect_market_sentiment.py'),
-                ('fmp_estimate_snapshots', 'scripts/collect_fmp_data.py'),
-            ]
-
-            if force_refresh:
-                tables_to_refresh = [t for t, _ in REFRESH_SCRIPTS]
-            else:
-                checker = StalenessChecker()
-                with get_db_session() as session:
-                    staleness = checker.check_all(session)
-                    stale = [s.table for s in staleness if s.stale]
-                    # Also refresh tables where active stocks have no data at all
-                    incomplete = checker.tables_with_missing_stocks(session)
-                tables_to_refresh = list(set(stale + incomplete))
-
-            for table_key, script_path in REFRESH_SCRIPTS:
-                if table_key in tables_to_refresh:
-                    full_path = project_root / script_path
-                    subprocess.run(
-                        [sys.executable, str(full_path)],
-                        capture_output=True, text=True, timeout=300,
-                        cwd=str(project_root),
-                    )
-
-        # Run scoring
-        pipeline = ScoringPipeline(verbose=False)
-        with get_db_session() as session:
-            result = pipeline.run(session)
-            pipeline.persist_to_db(session, result)
-            pipeline.persist_to_json(result)
-            snapshot_mgr = SnapshotManager()
-            snapshot_mgr.save(result)
-
-        return f"Scored {len(result.composite_results)} stocks"
-
-    # Need app context for background thread
     app = current_app._get_current_object()
 
-    def _run_with_context(skip_refresh, force_refresh):
+    def _run_scoring():
         with app.app_context():
-            return _run_scoring(skip_refresh, force_refresh)
+            from database import get_db_session
+            from scoring import ScoringPipeline
+            from utils.staleness import StalenessChecker
+            from backtesting.snapshot_manager import SnapshotManager
+            import subprocess, sys
 
-    task_id = submit_task('Calculate Scores', _run_with_context, skip_refresh, force_refresh)
-    return redirect(url_for('api.task_progress', task_id=task_id, redirect_to='/scores/'))
+            project_root = app.config['PROJECT_ROOT']
+
+            # Refresh data
+            if not skip_refresh:
+                REFRESH_SCRIPTS = [
+                    ('price_data',           'scripts/collect_price_data.py'),
+                    ('fundamental_data',     'scripts/collect_fundamental_data.py'),
+                    ('technical_indicators', 'scripts/calculate_technical_indicators.py'),
+                    ('sentiment_data',       'scripts/collect_sentiment_data.py'),
+                    ('market_sentiment',     'scripts/collect_market_sentiment.py'),
+                    ('fmp_estimate_snapshots', 'scripts/collect_fmp_data.py'),
+                ]
+
+                if ticker:
+                    # Single-stock: refresh all data types for this ticker only
+                    tables_to_refresh = [t for t, _ in REFRESH_SCRIPTS]
+                elif force_refresh:
+                    tables_to_refresh = [t for t, _ in REFRESH_SCRIPTS]
+                else:
+                    checker = StalenessChecker()
+                    with get_db_session() as session:
+                        staleness = checker.check_all(session)
+                        stale = [s.table for s in staleness if s.stale]
+                        incomplete = checker.tables_with_missing_stocks(session)
+                    tables_to_refresh = list(set(stale + incomplete))
+
+                for table_key, script_path in REFRESH_SCRIPTS:
+                    if table_key in tables_to_refresh:
+                        full_path = project_root / script_path
+                        cmd = [sys.executable, str(full_path)]
+                        # Pass ticker to collection scripts that support it
+                        if ticker and table_key != 'market_sentiment':
+                            cmd.extend(['--ticker', ticker])
+                        subprocess.run(
+                            cmd,
+                            capture_output=True, text=True, timeout=300,
+                            cwd=str(project_root),
+                        )
+
+            # Run scoring (always full universe for correct percentile ranking)
+            pipeline = ScoringPipeline(verbose=False)
+            with get_db_session() as session:
+                result = pipeline.run(session)
+                pipeline.persist_to_db(session, result)
+                pipeline.persist_to_json(result)
+                snapshot_mgr = SnapshotManager()
+                snapshot_mgr.save(result)
+
+            if ticker:
+                return f"Refreshed {ticker} and re-scored {len(result.composite_results)} stocks"
+            return f"Scored {len(result.composite_results)} stocks"
+
+    task_name = f'Calculate {ticker}' if ticker else 'Calculate All Scores'
+    task_id = submit_task(task_name, _run_scoring)
+    return jsonify({'task_id': task_id, 'name': task_name})
 
 
 @bp.route('/report')

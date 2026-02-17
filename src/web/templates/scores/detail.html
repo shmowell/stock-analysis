@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ stock.ticker }} - Stock Analysis{% endblock %}
 
-{% macro score_bar(label, value, css_class='', weight='') %}
+{% macro score_bar(label, value, css_class='', weight='', explanation='') %}
 <div class="score-bar-row sub-score-bar-row">
     <span class="score-label">{{ label }}{% if weight %} <span class="text-muted">({{ weight }})</span>{% endif %}</span>
     <div class="score-bar-track">
@@ -15,12 +15,23 @@
     <span class="score-value score-none">--</span>
     {% endif %}
 </div>
+{% if explanation %}
+<p class="score-explanation">{{ explanation }}</p>
+{% endif %}
 {% endmacro %}
 
 {% block content %}
 <div class="page-header">
     <h1>{{ stock.ticker }} — {{ stock.company_name or '' }}</h1>
-    <a href="/overrides/apply?ticker={{ stock.ticker }}" class="btn btn-secondary">Apply Override</a>
+    <div class="page-actions">
+        <button id="btn-recalc" class="btn btn-primary" onclick="startCalc()">Recalculate {{ stock.ticker }}</button>
+        <a href="/overrides/apply?ticker={{ stock.ticker }}" class="btn btn-secondary">Apply Override</a>
+    </div>
+</div>
+
+<div id="calc-toast" class="toast" style="display:none;">
+    <div class="spinner spinner-small"></div>
+    <span id="calc-toast-msg">Calculating...</span>
 </div>
 
 <p class="text-muted">{{ stock.sector or '' }} | {{ stock.industry or '' }}
@@ -104,18 +115,20 @@
 </div>
 
 {# Sub-component breakdown cards #}
+{% set expl = explanations or {} %}
 <div class="detail-grid">
     {# Fundamental Breakdown #}
     <div class="card">
         <h2>Fundamental Breakdown</h2>
         {% set fund = sub_components.get('fundamental', {}) if sub_components else {} %}
+        {% set fund_expl = expl.get('fundamental', {}) %}
         {% if data_status.get('fundamental') == 'no_data' %}
         <p class="score-none">No fundamental data available for this stock.</p>
         {% elif fund %}
         <div class="score-bars">
-            {{ score_bar('Value', fund.get('value_score'), '', '33%') }}
-            {{ score_bar('Quality', fund.get('quality_score'), '', '33%') }}
-            {{ score_bar('Growth', fund.get('growth_score'), '', '34%') }}
+            {{ score_bar('Value', fund.get('value_score'), '', '33%', fund_expl.get('value')) }}
+            {{ score_bar('Quality', fund.get('quality_score'), '', '33%', fund_expl.get('quality')) }}
+            {{ score_bar('Growth', fund.get('growth_score'), '', '34%', fund_expl.get('growth')) }}
         </div>
         {% else %}
         <p class="text-muted">No breakdown data available.</p>
@@ -126,16 +139,17 @@
     <div class="card">
         <h2>Technical Breakdown</h2>
         {% set tech = sub_components.get('technical', {}) if sub_components else {} %}
+        {% set tech_expl = expl.get('technical', {}) %}
         {% if data_status.get('technical') == 'no_data' %}
         <p class="score-none">No technical data available for this stock.</p>
         {% elif tech %}
         <div class="score-bars">
-            {{ score_bar('Momentum', tech.get('momentum_score'), 'score-bar-tech', '35%') }}
-            {{ score_bar('Trend', tech.get('trend_score'), 'score-bar-tech', '25%') }}
-            {{ score_bar('Volume-Qual', tech.get('volume_qualified_score'), 'score-bar-tech', '20%') }}
-            {{ score_bar('Rel Strength', tech.get('relative_strength_score'), 'score-bar-tech', '10%') }}
-            {{ score_bar('RSI', tech.get('rsi_score'), 'score-bar-tech', '5%') }}
-            {{ score_bar('Multi-Speed', tech.get('multi_speed_score'), 'score-bar-tech', '5%') }}
+            {{ score_bar('Momentum', tech.get('momentum_score'), 'score-bar-tech', '35%', tech_expl.get('momentum')) }}
+            {{ score_bar('Trend', tech.get('trend_score'), 'score-bar-tech', '25%', tech_expl.get('trend')) }}
+            {{ score_bar('Volume-Qual', tech.get('volume_qualified_score'), 'score-bar-tech', '20%', tech_expl.get('volume_qualified')) }}
+            {{ score_bar('Rel Strength', tech.get('relative_strength_score'), 'score-bar-tech', '10%', tech_expl.get('relative_strength')) }}
+            {{ score_bar('RSI', tech.get('rsi_score'), 'score-bar-tech', '5%', tech_expl.get('rsi')) }}
+            {{ score_bar('Multi-Speed', tech.get('multi_speed_score'), 'score-bar-tech', '5%', tech_expl.get('multi_speed')) }}
         </div>
         {% else %}
         <p class="text-muted">No breakdown data available.</p>
@@ -146,19 +160,20 @@
     <div class="card">
         <h2>Sentiment Breakdown</h2>
         {% set sent = sub_components.get('sentiment', {}) if sub_components else {} %}
+        {% set sent_expl = expl.get('sentiment', {}) %}
         {% if data_status.get('sentiment') == 'no_data' %}
         <p class="score-none">No sentiment data available for this stock.</p>
         {% elif sent %}
         <div class="score-bars">
-            {{ score_bar('Market Sentiment', sent.get('market_sentiment'), 'score-bar-sent', '40%') }}
-            {{ score_bar('Stock Sentiment', sent.get('stock_sentiment'), 'score-bar-sent', '60%') }}
+            {{ score_bar('Market Sentiment', sent.get('market_sentiment'), 'score-bar-sent', '40%', sent_expl.get('market')) }}
+            {{ score_bar('Stock Sentiment', sent.get('stock_sentiment'), 'score-bar-sent', '60%', sent_expl.get('stock')) }}
         </div>
         <h3 class="sub-section-header">Stock Sentiment Detail</h3>
         <div class="score-bars">
-            {{ score_bar('Short Interest', sent.get('short_interest_score'), 'score-bar-sent') }}
-            {{ score_bar('Analyst Revision', sent.get('revision_score'), 'score-bar-sent') }}
-            {{ score_bar('Analyst Consensus', sent.get('consensus_score'), 'score-bar-sent') }}
-            {{ score_bar('Insider Activity', sent.get('insider_score'), 'score-bar-sent') }}
+            {{ score_bar('Short Interest', sent.get('short_interest_score'), 'score-bar-sent', '', sent_expl.get('short_interest')) }}
+            {{ score_bar('Analyst Revision', sent.get('revision_score'), 'score-bar-sent', '', sent_expl.get('revision')) }}
+            {{ score_bar('Analyst Consensus', sent.get('consensus_score'), 'score-bar-sent', '', sent_expl.get('consensus')) }}
+            {{ score_bar('Insider Activity', sent.get('insider_score'), 'score-bar-sent', '', sent_expl.get('insider')) }}
         </div>
         {% else %}
         <p class="text-muted">No breakdown data available.</p>
@@ -170,4 +185,64 @@
 {% endif %}
 
 <a href="/scores/" class="link-small">Back to all scores</a>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function startCalc() {
+    var ticker = "{{ stock.ticker }}";
+    var btn = document.getElementById('btn-recalc');
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+
+    var toast = document.getElementById('calc-toast');
+    var toastMsg = document.getElementById('calc-toast-msg');
+    toast.style.display = 'flex';
+    toastMsg.textContent = 'Refreshing data for ' + ticker + '...';
+
+    fetch('/scores/calculate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ticker: ticker})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        pollTask(data.task_id);
+    })
+    .catch(function(err) {
+        toastMsg.textContent = 'Error: ' + err;
+        toast.className = 'toast toast-error';
+        btn.disabled = false;
+        btn.textContent = 'Recalculate ' + ticker;
+    });
+}
+
+function pollTask(taskId) {
+    var toast = document.getElementById('calc-toast');
+    var toastMsg = document.getElementById('calc-toast-msg');
+
+    fetch('/api/task/' + taskId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'completed') {
+                toast.className = 'toast toast-success';
+                toastMsg.textContent = data.result || 'Done!';
+                toast.querySelector('.spinner').style.display = 'none';
+                setTimeout(function() { window.location.reload(); }, 1000);
+            } else if (data.status === 'failed') {
+                toast.className = 'toast toast-error';
+                toastMsg.textContent = 'Failed: ' + (data.error || 'Unknown error');
+                toast.querySelector('.spinner').style.display = 'none';
+                var btn = document.getElementById('btn-recalc');
+                btn.disabled = false;
+                btn.textContent = 'Recalculate {{ stock.ticker }}';
+            } else {
+                setTimeout(function() { pollTask(taskId); }, 2000);
+            }
+        })
+        .catch(function() {
+            setTimeout(function() { pollTask(taskId); }, 3000);
+        });
+}
+</script>
 {% endblock %}

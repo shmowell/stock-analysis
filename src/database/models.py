@@ -272,6 +272,11 @@ class StockScore(Base):
 
     created_at = Column(DateTime, server_default=func.now())
 
+    __table_args__ = (
+        UniqueConstraint('ticker', 'calculation_date',
+                         name='uq_stock_score_ticker_date'),
+    )
+
     def __repr__(self):
         return f"<StockScore(ticker='{self.ticker}', date='{self.calculation_date}', score={self.final_composite_score})>"
 

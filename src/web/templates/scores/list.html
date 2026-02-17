@@ -5,11 +5,14 @@
 <div class="page-header">
     <h1>Stock Scores</h1>
     <div class="page-actions">
-        <form method="post" action="/scores/calculate" style="display:inline">
-            <button type="submit" class="btn btn-primary">Recalculate</button>
-        </form>
+        <button id="btn-recalc" class="btn btn-primary" onclick="startCalc({})">Recalculate All</button>
         <a href="/scores/report" class="btn btn-secondary">View Report</a>
     </div>
+</div>
+
+<div id="calc-toast" class="toast" style="display:none;">
+    <div class="spinner spinner-small"></div>
+    <span id="calc-toast-msg">Calculating...</span>
 </div>
 
 {% if calc_date %}
@@ -72,4 +75,65 @@
 {% else %}
 <p class="text-muted">No scores available. Run the scoring pipeline first.</p>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function startCalc(opts) {
+    var btn = document.getElementById('btn-recalc');
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+
+    var toast = document.getElementById('calc-toast');
+    var toastMsg = document.getElementById('calc-toast-msg');
+    toast.style.display = 'flex';
+    toastMsg.textContent = opts.ticker
+        ? 'Refreshing ' + opts.ticker + '...'
+        : 'Recalculating all scores...';
+
+    fetch('/scores/calculate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(opts)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        pollTask(data.task_id);
+    })
+    .catch(function(err) {
+        toastMsg.textContent = 'Error: ' + err;
+        toast.className = 'toast toast-error';
+        btn.disabled = false;
+        btn.textContent = 'Recalculate All';
+    });
+}
+
+function pollTask(taskId) {
+    var toast = document.getElementById('calc-toast');
+    var toastMsg = document.getElementById('calc-toast-msg');
+
+    fetch('/api/task/' + taskId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'completed') {
+                toast.className = 'toast toast-success';
+                toastMsg.textContent = data.result || 'Done!';
+                toast.querySelector('.spinner').style.display = 'none';
+                setTimeout(function() { window.location.reload(); }, 1000);
+            } else if (data.status === 'failed') {
+                toast.className = 'toast toast-error';
+                toastMsg.textContent = 'Failed: ' + (data.error || 'Unknown error');
+                toast.querySelector('.spinner').style.display = 'none';
+                var btn = document.getElementById('btn-recalc');
+                btn.disabled = false;
+                btn.textContent = 'Recalculate All';
+            } else {
+                setTimeout(function() { pollTask(taskId); }, 2000);
+            }
+        })
+        .catch(function() {
+            setTimeout(function() { pollTask(taskId); }, 3000);
+        });
+}
+</script>
 {% endblock %}

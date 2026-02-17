@@ -261,4 +261,40 @@ legend { font-weight: 600; font-size: 14px; padding: 0 0.5rem; }
     animation: spin 0.8s linear infinite;
     margin: 1rem auto;
 }
+.spinner-small {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0;
+    flex-shrink: 0;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast notification bar */
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--primary);
+    color: #fff;
+}
+.toast-success { background: var(--green); }
+.toast-error { background: var(--red); }
+
+/* Score explanation text */
+.score-explanation {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0.1rem 0 0.5rem 0;
+    padding-left: 130px;
+    line-height: 1.4;
+}

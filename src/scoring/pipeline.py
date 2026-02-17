@@ -588,6 +588,14 @@ class ScoringPipeline:
         calc_date = calculation_date or date.today()
         count = 0
 
+        # Delete existing scores for this date to avoid duplicates
+        tickers_to_save = [cr.ticker for cr in result.composite_results]
+        if tickers_to_save:
+            session.query(StockScore).filter(
+                StockScore.calculation_date == calc_date,
+                StockScore.ticker.in_(tickers_to_save),
+            ).delete(synchronize_session='fetch')
+
         for cr in result.composite_results:
             pillars = result.pillar_scores.get(cr.ticker, {})
             fund_detail = pillars.get('fundamental_detail', {})

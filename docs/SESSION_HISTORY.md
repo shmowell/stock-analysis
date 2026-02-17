@@ -4,6 +4,39 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16d: Fix Duplicates, Background Recalc, Single-Stock Recalc (Partial) ✅
+
+**Completed Tasks:**
+- Fixed duplicate stock scores in DB — removed 16 duplicate rows, added `UniqueConstraint('ticker', 'calculation_date')` to `StockScore` model
+- Updated `persist_to_db()` to delete existing rows before inserting (upsert pattern) — prevents future duplicates
+- Created one-time migration script `scripts/fix_duplicate_scores.py`
+- Converted Recalculate button from form POST (redirect to progress page) to AJAX fetch with in-page toast notification — user stays on the scores page while calculation runs in background
+- Added single-stock recalculation: "Recalculate TICKER" button on score detail page sends `{ticker: "XYZ"}` to `/scores/calculate`, which passes `--ticker` to collection scripts for faster single-stock data refresh, then re-scores full universe for correct percentiles
+- Updated `/scores/calculate` route to accept JSON body instead of form data, return JSON `{task_id, name}` for AJAX polling
+- Added toast CSS (`.toast`, `.toast-success`, `.toast-error`, `.spinner-small`) and score explanation CSS (`.score-explanation`) to stylesheet
+- Prepared detail template for explainability text — `score_bar` macro accepts `explanation` param, template reads from `explanations` dict
+
+**Files Created/Modified:**
+- `src/database/models.py` — Added `UniqueConstraint` to `StockScore`
+- `src/scoring/pipeline.py` — `persist_to_db()` now deletes before insert
+- `scripts/fix_duplicate_scores.py` — One-time migration (created)
+- `src/web/routes/scores.py` — Rewrote `/calculate` for JSON/AJAX + single-ticker support
+- `src/web/templates/scores/list.html` — AJAX recalculate with toast, removed form POST
+- `src/web/templates/scores/detail.html` — Added recalculate button, toast, explanation plumbing
+- `src/web/static/css/style.css` — Toast, spinner-small, score-explanation styles
+
+**Technical Decisions:**
+1. Upsert via DELETE+INSERT rather than PostgreSQL `ON CONFLICT` — simpler, works across DB engines
+2. Single-stock recalc refreshes data for one ticker only but re-scores entire universe — required for correct percentile ranking
+3. AJAX + polling approach keeps user on current page during background calculation — better UX than redirect to progress page
+
+**Not Completed (deferred to next session):**
+- Score explainability text module (`src/scoring/explainer.py`) — template is wired up and ready, needs the explainer module that reads raw DB metrics and generates human-readable text for each sub-component
+- Wiring explainer output into `score_detail()` route
+- Test run to verify all changes
+
+---
+
 ## Session 2026-02-16c: Fix Missing Data Scoring (None Propagation) ✅
 
 **Completed Tasks:**
