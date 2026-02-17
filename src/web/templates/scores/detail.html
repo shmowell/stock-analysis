@@ -138,6 +138,21 @@
     </div>
 </div>
 
+{# Score vs. Price Performance #}
+<div class="detail-grid" style="grid-template-columns:1fr;">
+    <div class="card">
+        <h2>Score vs. Price Performance</h2>
+        <p id="perf-summary" class="text-muted" style="font-size:13px;">Loading performance data...</p>
+        <div class="chart-container">
+            <canvas id="perfChart"></canvas>
+        </div>
+        <p class="text-muted" style="font-size:12px; margin-top:0.5rem;">
+            Line = composite score at each snapshot. Bars = actual 1-month forward return after that score was assigned.
+            <a href="/performance/" class="link-small">View universe-wide analysis</a>
+        </p>
+    </div>
+</div>
+
 {# Sub-component breakdown cards #}
 {% set expl = explanations or {} %}
 <div class="detail-grid">
@@ -431,6 +446,134 @@ function renderScoreChart(scores) {
                     min: 0,
                     max: 100,
                     ticks: { stepSize: 25 }
+                }
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
+    });
+}
+
+/* ---------- Score vs. Performance Chart ---------- */
+fetch('/performance/stock/' + TICKER)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.error) {
+            document.getElementById('perf-summary').textContent = 'Performance data not available.';
+            return;
+        }
+        renderPerfSummary(data);
+        renderPerfChart(data);
+    })
+    .catch(function() {
+        document.getElementById('perf-summary').textContent = 'Performance data not available.';
+    });
+
+function renderPerfSummary(data) {
+    var el = document.getElementById('perf-summary');
+    var n = data.observations || 0;
+    var corr = data.score_return_correlation;
+
+    if (n === 0) {
+        el.textContent = 'No historical snapshot data available for this stock.';
+        return;
+    }
+
+    var corrText = 'insufficient data for correlation';
+    if (corr !== null) {
+        if (corr > 0.3) corrText = 'positively correlate (r = ' + corr.toFixed(2) + ')';
+        else if (corr > 0.1) corrText = 'weakly positively correlate (r = ' + corr.toFixed(2) + ')';
+        else if (corr > -0.1) corrText = 'show no clear correlation (r = ' + corr.toFixed(2) + ')';
+        else if (corr > -0.3) corrText = 'weakly negatively correlate (r = ' + corr.toFixed(2) + ')';
+        else corrText = 'negatively correlate (r = ' + corr.toFixed(2) + ')';
+    }
+
+    var avgRet = data.avg_return_1m !== null ? ' | Avg 1m return: ' + (data.avg_return_1m * 100).toFixed(1) + '%' : '';
+    el.textContent = 'Based on ' + n + ' historical snapshots, score changes ' + corrText + '.' + avgRet;
+}
+
+function renderPerfChart(data) {
+    var canvas = document.getElementById('perfChart');
+    if (!canvas || !data.score_dates || data.score_dates.length === 0) return;
+
+    var barColors = data.forward_returns_1m.map(function(v) {
+        if (v === null) return 'rgba(156,163,175,0.5)';
+        return v >= 0 ? 'rgba(22,163,74,0.6)' : 'rgba(220,38,38,0.6)';
+    });
+
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: data.score_dates,
+            datasets: [
+                {
+                    label: '1m Forward Return',
+                    data: data.forward_returns_1m,
+                    backgroundColor: barColors,
+                    borderColor: barColors,
+                    borderWidth: 1,
+                    yAxisID: 'y1',
+                    order: 2
+                },
+                {
+                    label: 'Composite Score',
+                    data: data.composite_scores,
+                    type: 'line',
+                    borderColor: '#1a1d23',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHitRadius: 8,
+                    tension: 0.2,
+                    yAxisID: 'y',
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12, padding: 10, font: { size: 11 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            if (ctx.dataset.yAxisID === 'y1') {
+                                return ctx.parsed.y !== null ? '1m Return: ' + (ctx.parsed.y * 100).toFixed(1) + '%' : '1m Return: N/A';
+                            }
+                            return 'Score: ' + ctx.parsed.y.toFixed(1);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        callback: function(val, i) {
+                            var d = this.getLabelForValue(val);
+                            return d.substring(5); /* MM-DD */
+                        }
+                    },
+                    grid: { display: false }
+                },
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    min: 0,
+                    max: 100,
+                    ticks: { stepSize: 25 },
+                    title: { display: true, text: 'Composite Score', font: { size: 11 } }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    ticks: {
+                        callback: function(val) { return (val * 100).toFixed(0) + '%'; }
+                    },
+                    title: { display: true, text: '1m Forward Return', font: { size: 11 } },
+                    grid: { drawOnChartArea: false }
                 }
             },
             interaction: { intersect: false, mode: 'index' }

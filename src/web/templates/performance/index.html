@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% block title %}Score Performance - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Score vs. Price Performance</h1>
+</div>
+
+<div class="caveat-banner">
+    <strong>Data note:</strong> Analysis uses historical monthly snapshots paired with actual forward price returns.
+    Historical scores reflect varying technical conditions but constant fundamental/sentiment data
+    (only current point-in-time data is available for those pillars). Statistical significance improves as more snapshots accumulate.
+</div>
+
+<div id="loading-state">
+    <div class="card" style="text-align:center; padding:2rem;">
+        <div class="spinner"></div>
+        <p class="text-muted">Loading performance data...</p>
+    </div>
+</div>
+
+<div id="error-state" style="display:none;">
+    <div class="card">
+        <p class="text-muted" id="error-msg">Failed to load performance data.</p>
+    </div>
+</div>
+
+<div id="main-content" style="display:none;">
+
+{# Summary metrics row #}
+<div class="detail-grid detail-grid-3">
+    <div class="card metric-card">
+        <h2>Spearman Correlation</h2>
+        <div class="metric-value" id="metric-spearman">--</div>
+        <div class="metric-label">Score rank vs. return rank</div>
+        <div class="metric-sub" id="metric-spearman-detail"></div>
+    </div>
+    <div class="card metric-card">
+        <h2>Long-Short Spread</h2>
+        <div class="metric-value" id="metric-longshort">--</div>
+        <div class="metric-label">Top quintile return minus bottom quintile</div>
+        <div class="metric-sub" id="metric-longshort-detail"></div>
+    </div>
+    <div class="card metric-card">
+        <h2>Top Quintile Hit Rate</h2>
+        <div class="metric-value" id="metric-hitrate">--</div>
+        <div class="metric-label">% of top-scored stocks beating median</div>
+        <div class="metric-sub" id="metric-hitrate-detail"></div>
+    </div>
+</div>
+
+{# Data coverage info #}
+<p class="text-muted" id="data-coverage" style="margin-bottom:1rem;"></p>
+
+{# Charts row #}
+<div class="detail-grid">
+    <div class="card">
+        <h2>Returns by Score Quintile</h2>
+        <div class="chart-container">
+            <canvas id="quintileChart"></canvas>
+        </div>
+        <p class="text-muted" style="font-size:12px; margin-top:0.5rem;">
+            Q1 = highest scored stocks, Q5 = lowest. If the model works, Q1 should outperform Q5.
+        </p>
+    </div>
+    <div class="card">
+        <h2>Returns by Recommendation</h2>
+        <div class="chart-container">
+            <canvas id="recChart"></canvas>
+        </div>
+        <p class="text-muted" style="font-size:12px; margin-top:0.5rem;">
+            Average forward return for each recommendation tier.
+        </p>
+    </div>
+</div>
+
+{# Monthly spread chart #}
+<div class="detail-grid" style="grid-template-columns:1fr;">
+    <div class="card">
+        <h2>Monthly Top-Half vs. Bottom-Half Spread (1-Month Forward)</h2>
+        <div class="chart-container">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+        <p class="text-muted" style="font-size:12px; margin-top:0.5rem;">
+            Positive bars mean higher-scored stocks outperformed lower-scored stocks in the following month.
+        </p>
+    </div>
+</div>
+
+{# Data table #}
+<div class="card">
+    <h2>Recommendation Performance Detail</h2>
+    <div style="overflow-x:auto;">
+        <table class="data-table" id="rec-table">
+            <thead>
+                <tr>
+                    <th>Recommendation</th>
+                    <th>Count</th>
+                    <th>Avg Score</th>
+                    <th>Avg 1m Return</th>
+                    <th>Avg 3m Return</th>
+                    <th>Median 1m</th>
+                    <th>Median 3m</th>
+                    <th>Win Rate 1m</th>
+                    <th>Win Rate 3m</th>
+                </tr>
+            </thead>
+            <tbody id="rec-table-body">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+fetch('/performance/data')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.error) {
+            showError(data.error);
+            return;
+        }
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        renderMetrics(data);
+        renderQuintileChart(data);
+        renderRecChart(data);
+        renderMonthlyChart(data);
+        renderTable(data);
+    })
+    .catch(function(err) {
+        showError(err.toString());
+    });
+
+function showError(msg) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'block';
+    document.getElementById('error-msg').textContent = 'Error: ' + msg;
+}
+
+function pct(val) {
+    if (val === null || val === undefined) return '--';
+    return (val * 100).toFixed(1) + '%';
+}
+
+function colorClass(val) {
+    if (val === null || val === undefined) return 'neutral';
+    return val > 0 ? 'positive' : (val < 0 ? 'negative' : 'neutral');
+}
+
+function renderMetrics(data) {
+    // Spearman
+    var sp = document.getElementById('metric-spearman');
+    var spVal = data.spearman_1m;
+    sp.textContent = spVal !== null ? spVal.toFixed(3) : '--';
+    sp.className = 'metric-value ' + colorClass(spVal);
+    document.getElementById('metric-spearman-detail').innerHTML =
+        '1m: ' + (data.spearman_1m !== null ? data.spearman_1m.toFixed(3) : '--') +
+        ' | 3m: ' + (data.spearman_3m !== null ? data.spearman_3m.toFixed(3) : '--');
+
+    // Long-short
+    var ls = document.getElementById('metric-longshort');
+    var lsVal = data.long_short_1m;
+    ls.textContent = lsVal !== null ? pct(lsVal) : '--';
+    ls.className = 'metric-value ' + colorClass(lsVal);
+    document.getElementById('metric-longshort-detail').innerHTML =
+        '1m: ' + pct(data.long_short_1m) + ' | 3m: ' + pct(data.long_short_3m);
+
+    // Hit rate
+    var hr = document.getElementById('metric-hitrate');
+    var hrVal = data.hit_rate_1m;
+    hr.textContent = hrVal !== null ? pct(hrVal) : '--';
+    hr.className = 'metric-value ' + (hrVal !== null && hrVal > 0.5 ? 'positive' : (hrVal !== null && hrVal < 0.5 ? 'negative' : 'neutral'));
+    document.getElementById('metric-hitrate-detail').innerHTML =
+        '1m: ' + pct(data.hit_rate_1m) + ' | 3m: ' + pct(data.hit_rate_3m);
+
+    // Data coverage
+    document.getElementById('data-coverage').textContent =
+        data.total_observations + ' total observations across ' +
+        data.snapshot_dates.length + ' snapshots | ' +
+        data.observations_with_1m + ' with 1-month returns | ' +
+        data.observations_with_3m + ' with 3-month returns';
+}
+
+function renderQuintileChart(data) {
+    var canvas = document.getElementById('quintileChart');
+    if (!canvas) return;
+
+    var labels = ['Q1 (Top)', 'Q2', 'Q3', 'Q4', 'Q5 (Bottom)'];
+    var q1m = data.quintile_returns_1m || {};
+    var q3m = data.quintile_returns_3m || {};
+
+    var data1m = [q1m['1']||0, q1m['2']||0, q1m['3']||0, q1m['4']||0, q1m['5']||0];
+    var data3m = [q3m['1']||0, q3m['2']||0, q3m['3']||0, q3m['4']||0, q3m['5']||0];
+
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '1-Month Forward',
+                    data: data1m,
+                    backgroundColor: data1m.map(function(v) { return v >= 0 ? 'rgba(37,99,235,0.7)' : 'rgba(220,38,38,0.7)'; }),
+                    borderColor: data1m.map(function(v) { return v >= 0 ? '#2563eb' : '#dc2626'; }),
+                    borderWidth: 1
+                },
+                {
+                    label: '3-Month Forward',
+                    data: data3m,
+                    backgroundColor: data3m.map(function(v) { return v >= 0 ? 'rgba(6,182,212,0.7)' : 'rgba(234,88,12,0.7)'; }),
+                    borderColor: data3m.map(function(v) { return v >= 0 ? '#06b6d4' : '#ea580c'; }),
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) { return ctx.dataset.label + ': ' + (ctx.parsed.y * 100).toFixed(1) + '%'; }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { callback: function(val) { return (val * 100).toFixed(0) + '%'; } },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+function renderRecChart(data) {
+    var canvas = document.getElementById('recChart');
+    if (!canvas) return;
+
+    var buckets = data.recommendation_buckets || [];
+    var labels = buckets.map(function(b) { return b.recommendation; });
+    var data1m = buckets.map(function(b) { return b.avg_return_1m || 0; });
+    var data3m = buckets.map(function(b) { return b.avg_return_3m || 0; });
+
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Avg 1-Month Return',
+                    data: data1m,
+                    backgroundColor: data1m.map(function(v) { return v >= 0 ? 'rgba(22,163,74,0.7)' : 'rgba(220,38,38,0.7)'; }),
+                    borderColor: data1m.map(function(v) { return v >= 0 ? '#16a34a' : '#dc2626'; }),
+                    borderWidth: 1
+                },
+                {
+                    label: 'Avg 3-Month Return',
+                    data: data3m,
+                    backgroundColor: data3m.map(function(v) { return v >= 0 ? 'rgba(6,182,212,0.7)' : 'rgba(234,88,12,0.7)'; }),
+                    borderColor: data3m.map(function(v) { return v >= 0 ? '#06b6d4' : '#ea580c'; }),
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) { return ctx.dataset.label + ': ' + (ctx.parsed.y * 100).toFixed(1) + '%'; }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { callback: function(val) { return (val * 100).toFixed(0) + '%'; } },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+function renderMonthlyChart(data) {
+    var canvas = document.getElementById('monthlyChart');
+    if (!canvas) return;
+
+    var monthly = data.monthly_long_short || [];
+    var labels = monthly.map(function(m) { return m.date; });
+    var spreads = monthly.map(function(m) { return m.spread_1m; });
+
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Top-Half minus Bottom-Half (1m forward)',
+                data: spreads,
+                backgroundColor: spreads.map(function(v) {
+                    if (v === null) return 'rgba(156,163,175,0.5)';
+                    return v >= 0 ? 'rgba(22,163,74,0.7)' : 'rgba(220,38,38,0.7)';
+                }),
+                borderColor: spreads.map(function(v) {
+                    if (v === null) return '#9ca3af';
+                    return v >= 0 ? '#16a34a' : '#dc2626';
+                }),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            if (ctx.parsed.y === null) return 'No data';
+                            return 'Spread: ' + (ctx.parsed.y * 100).toFixed(1) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { callback: function(val) { return (val * 100).toFixed(0) + '%'; } },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    ticks: {
+                        callback: function(val, i) {
+                            var d = this.getLabelForValue(val);
+                            return d.substring(5); /* MM-DD */
+                        }
+                    },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+function renderTable(data) {
+    var tbody = document.getElementById('rec-table-body');
+    var buckets = data.recommendation_buckets || [];
+
+    buckets.forEach(function(b) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td><span class="rec rec-' + b.recommendation.toLowerCase().replace(/ /g, '-') + '">' + b.recommendation + '</span></td>' +
+            '<td>' + b.count + '</td>' +
+            '<td>' + (b.avg_score !== null ? b.avg_score.toFixed(1) : '--') + '</td>' +
+            '<td class="' + colorClass(b.avg_return_1m) + '">' + pct(b.avg_return_1m) + '</td>' +
+            '<td class="' + colorClass(b.avg_return_3m) + '">' + pct(b.avg_return_3m) + '</td>' +
+            '<td class="' + colorClass(b.median_return_1m) + '">' + pct(b.median_return_1m) + '</td>' +
+            '<td class="' + colorClass(b.median_return_3m) + '">' + pct(b.median_return_3m) + '</td>' +
+            '<td>' + pct(b.win_rate_1m) + '</td>' +
+            '<td>' + pct(b.win_rate_3m) + '</td>';
+        tbody.appendChild(tr);
+    });
+}
+</script>
+{% endblock %}

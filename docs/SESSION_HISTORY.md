@@ -4,6 +4,47 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16h: Score vs. Price Performance Analysis ✅
+
+**Completed Tasks:**
+- Built `ScorePerformanceAnalyzer` engine that correlates historical composite scores with actual forward price returns
+- Created universe-level performance dashboard at `/performance/` with Chart.js visualizations
+- Added per-stock "Score vs. Price Performance" dual-axis chart to each stock detail page
+- Implemented 3 JSON API endpoints for performance data
+- 35 unit tests written and passing
+
+**Files Created:**
+- `src/analysis/__init__.py` — New analysis package
+- `src/analysis/score_performance.py` — Core analysis engine (~280 lines): loads snapshots + price data, computes recommendation bucket analysis, quintile returns, Spearman correlation, hit rates, long-short spread, monthly time series
+- `src/web/routes/performance.py` — Flask blueprint with 3 routes: `/performance/`, `/performance/data`, `/performance/stock/<ticker>`
+- `src/web/templates/performance/index.html` — Universe dashboard: summary metric cards, quintile bar chart, recommendation returns chart, monthly spread chart, data table
+- `tests/test_score_performance.py` — 35 unit tests covering universe analysis, stock analysis, statistical methods, and price lookups
+
+**Files Modified:**
+- `src/web/__init__.py` — Registered performance blueprint
+- `src/web/templates/base.html` — Added "Performance" nav link
+- `src/web/templates/scores/detail.html` — Added per-stock performance section with dual-axis chart (composite score line + forward return bars) and correlation summary text
+- `src/web/static/css/style.css` — Added metric card, caveat banner, and table color CSS classes
+
+**Technical Decisions:**
+1. Used 1-month and 3-month forward return horizons only (6-month impractical with 12-month snapshot history)
+2. Copied statistical methods (`_quintile_analysis`, `_spearman_correlation`, `_hit_rate`) into analyzer rather than importing from TechnicalBacktester to avoid tight coupling
+3. Built in-memory price cache using bisect-based sorted lists for efficient date lookups (7,500 records fits easily)
+4. On-demand computation (no caching needed for ~210 data points across 14 snapshots)
+5. Per-snapshot "monthly long-short" uses top-half/bottom-half split instead of quintiles (only ~15 stocks per snapshot)
+
+**Key Results (Real Data):**
+- 237 total observations across 14 snapshots (187 with 1m returns, 153 with 3m returns)
+- Long-short spread: +2.6% (1m), +2.7% (3m) — top-scored stocks outperform
+- STRONG SELL stocks: lowest win rate (48%) and lowest 3m returns (3.9%)
+- STRONG BUY/BUY stocks: higher win rates (59-61%) than SELL/STRONG SELL (48-61%)
+- Hit rate: 57% (1m) — top-quintile stocks beat median more often than not
+- Low overall Spearman (0.014/0.041) expected since historical fundamental/sentiment held constant
+
+**Git Commit:** See below
+
+---
+
 ## Session 2026-02-16g: Historical Score Generation ✅
 
 **Completed Tasks:**

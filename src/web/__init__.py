@@ -38,6 +38,7 @@ def create_app(testing=False):
     from .routes.universe import bp as universe_bp
     from .routes.overrides import bp as overrides_bp
     from .routes.backtest import bp as backtest_bp
+    from .routes.performance import bp as performance_bp
     from .routes.data import bp as data_bp
     from .routes.api import bp as api_bp
 
@@ -46,6 +47,7 @@ def create_app(testing=False):
     app.register_blueprint(universe_bp, url_prefix='/universe')
     app.register_blueprint(overrides_bp, url_prefix='/overrides')
     app.register_blueprint(backtest_bp, url_prefix='/backtest')
+    app.register_blueprint(performance_bp, url_prefix='/performance')
     app.register_blueprint(data_bp, url_prefix='/data')
     app.register_blueprint(api_bp, url_prefix='/api')
 

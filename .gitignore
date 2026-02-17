@@ -130,6 +130,8 @@ backtest_results/
 # Exceptions - Always Commit These
 !.gitkeep
 !templates/**
+!src/web/templates/performance/
+!src/web/templates/performance/**
 !config/settings.yaml
 !.env.example
 !README.md
