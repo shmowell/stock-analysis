@@ -33,7 +33,7 @@
     <tbody>
         {% for s in scores %}
         {% set prev = previous.get(s.ticker, {}) %}
-        {% set chg = (s.final_composite_score|float - prev.get('composite_score', s.final_composite_score|float))|round(1) %}
+        {% set chg = (s.final_composite_score|float - prev.get('composite_score', s.final_composite_score|float))|round(1) if s.final_composite_score is not none else 0 %}
         <tr>
             <td>{{ loop.index }}</td>
             <td>
@@ -43,13 +43,28 @@
                 {% endif %}
             </td>
             <td><span class="rec rec-{{ s.recommendation|lower|replace(' ', '-') }}">{{ s.recommendation }}</span></td>
-            <td>{{ "%.1f"|format(s.final_composite_score|float) }}</td>
-            <td>{{ "%.1f"|format(s.fundamental_score|float) }}</td>
-            <td>{{ "%.1f"|format(s.technical_score|float) }}</td>
-            <td>{{ "%.1f"|format(s.sentiment_score|float) }}</td>
+            <td>{{ "%.1f"|format(s.final_composite_score|float) if s.final_composite_score is not none else "N/A" }}</td>
+            <td>{{ "%.1f"|format(s.fundamental_score|float) if s.fundamental_score is not none else "N/A" }}</td>
+            <td>{{ "%.1f"|format(s.technical_score|float) if s.technical_score is not none else "N/A" }}</td>
+            <td>{{ "%.1f"|format(s.sentiment_score|float) if s.sentiment_score is not none else "N/A" }}</td>
             <td class="{% if chg > 0 %}text-green{% elif chg < 0 %}text-red{% endif %}">
                 {% if chg != 0 %}{{ "%+.1f"|format(chg) }}{% endif %}
             </td>
+        </tr>
+        {% endfor %}
+        {% for s in unscored|default([]) %}
+        <tr class="row-unscored">
+            <td class="text-muted">--</td>
+            <td>
+                <a href="/scores/{{ s.ticker }}">{{ s.ticker }}</a>
+                <span class="badge badge-warn" title="Insufficient data for scoring">!</span>
+            </td>
+            <td><span class="rec rec-insufficient-data">INSUFFICIENT DATA</span></td>
+            <td class="text-muted">N/A</td>
+            <td class="text-muted">N/A</td>
+            <td class="text-muted">N/A</td>
+            <td class="text-muted">N/A</td>
+            <td></td>
         </tr>
         {% endfor %}
     </tbody>

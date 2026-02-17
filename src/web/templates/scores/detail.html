@@ -34,10 +34,10 @@
     <strong>Data gaps detected</strong> &mdash;
     {% for pillar, status in data_status.items() %}
         {% if status == 'no_data' %}
-        <span>{{ pillar|capitalize }} (defaulted to 50.0)</span>{% if not loop.last %}, {% endif %}
+        <span>{{ pillar|capitalize }} (no data)</span>{% if not loop.last %}, {% endif %}
         {% endif %}
     {% endfor %}
-    <br><span class="text-muted">Scores of 50.0 indicate missing data, not a calculated assessment.</span>
+    <br><span class="text-muted">Run data collection to populate missing pillars. Unscored pillars are excluded from composite ranking.</span>
 </div>
 {% endif %}
 
@@ -45,9 +45,16 @@
 <div class="detail-grid">
     <div class="card">
         <h2>Composite Score</h2>
+        {% if score.final_composite_score is not none %}
         <div class="big-number">{{ "%.1f"|format(score.final_composite_score|float) }}</div>
         <p><span class="rec rec-{{ score.recommendation|lower|replace(' ', '-') }}">{{ score.recommendation }}</span></p>
+        {% else %}
+        <div class="big-number score-none">N/A</div>
+        <p><span class="rec rec-insufficient-data">INSUFFICIENT DATA</span></p>
+        {% endif %}
+        {% if score.calculation_date %}
         <p class="text-muted">Calculated: {{ score.calculation_date }}</p>
+        {% endif %}
     </div>
 
     <div class="card">
@@ -56,23 +63,41 @@
             <div class="score-bar-row">
                 <span class="score-label">Fundamental (45%)</span>
                 <div class="score-bar-track">
+                    {% if score.fundamental_score is not none %}
                     <div class="score-bar-fill" style="width: {{ score.fundamental_score|float }}%"></div>
+                    {% endif %}
                 </div>
+                {% if score.fundamental_score is not none %}
                 <span class="score-value">{{ "%.1f"|format(score.fundamental_score|float) }}</span>
+                {% else %}
+                <span class="score-value score-none">N/A</span>
+                {% endif %}
             </div>
             <div class="score-bar-row">
                 <span class="score-label">Technical (35%)</span>
                 <div class="score-bar-track">
+                    {% if score.technical_score is not none %}
                     <div class="score-bar-fill score-bar-tech" style="width: {{ score.technical_score|float }}%"></div>
+                    {% endif %}
                 </div>
+                {% if score.technical_score is not none %}
                 <span class="score-value">{{ "%.1f"|format(score.technical_score|float) }}</span>
+                {% else %}
+                <span class="score-value score-none">N/A</span>
+                {% endif %}
             </div>
             <div class="score-bar-row">
                 <span class="score-label">Sentiment (20%)</span>
                 <div class="score-bar-track">
+                    {% if score.sentiment_score is not none %}
                     <div class="score-bar-fill score-bar-sent" style="width: {{ score.sentiment_score|float }}%"></div>
+                    {% endif %}
                 </div>
+                {% if score.sentiment_score is not none %}
                 <span class="score-value">{{ "%.1f"|format(score.sentiment_score|float) }}</span>
+                {% else %}
+                <span class="score-value score-none">N/A</span>
+                {% endif %}
             </div>
         </div>
     </div>

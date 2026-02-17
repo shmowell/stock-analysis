@@ -412,7 +412,7 @@ class ScoringPipeline:
                 fund_result = self._fundamental_calc.calculate_fundamental_score(
                     fund_stock[ticker], fund_universe
                 )
-                fund_score = fund_result.get('fundamental_score', 50.0)
+                fund_score = fund_result.get('fundamental_score')
                 fund_detail = {
                     'value_score': fund_result.get('value_score'),
                     'quality_score': fund_result.get('quality_score'),
@@ -420,7 +420,7 @@ class ScoringPipeline:
                 }
                 data_status['fundamental'] = 'calculated'
             else:
-                fund_score = 50.0
+                fund_score = None
                 data_status['fundamental'] = 'no_data'
 
             # Technical
@@ -428,7 +428,7 @@ class ScoringPipeline:
                 tech_result = self._technical_calc.calculate_technical_score(
                     tech_stock[ticker], tech_universe
                 )
-                tech_score = tech_result.get('technical_score', 50.0)
+                tech_score = tech_result.get('technical_score')
                 tech_detail = {
                     'momentum_score': tech_result.get('momentum_score'),
                     'trend_score': tech_result.get('trend_score'),
@@ -439,7 +439,7 @@ class ScoringPipeline:
                 }
                 data_status['technical'] = 'calculated'
             else:
-                tech_score = 50.0
+                tech_score = None
                 data_status['technical'] = 'no_data'
 
             # Sentiment (returns dict with sub-components)
@@ -460,13 +460,13 @@ class ScoringPipeline:
                 }
                 data_status['sentiment'] = 'calculated'
             else:
-                sent_score = 50.0
+                sent_score = None
                 data_status['sentiment'] = 'no_data'
 
             pillar_scores[ticker] = {
-                'fundamental': fund_score if fund_score is not None else 50.0,
-                'technical': tech_score if tech_score is not None else 50.0,
-                'sentiment': sent_score if sent_score is not None else 50.0,
+                'fundamental': fund_score,
+                'technical': tech_score,
+                'sentiment': sent_score,
                 'fundamental_detail': fund_detail,
                 'technical_detail': tech_detail,
                 'sentiment_detail': sent_detail,
@@ -475,12 +475,23 @@ class ScoringPipeline:
 
         self._log(f"  Calculated pillar scores for {len(pillar_scores)} stocks")
 
-        # Validate
-        self._validate_scores(pillar_scores)
+        # Separate fully-scored stocks from those missing data
+        scorable = {
+            ticker: scores for ticker, scores in pillar_scores.items()
+            if scores['fundamental'] is not None
+            and scores['technical'] is not None
+            and scores['sentiment'] is not None
+        }
+        unscored = [t for t in pillar_scores if t not in scorable]
+        if unscored:
+            self._log(f"  Excluding {len(unscored)} stock(s) with missing data: {', '.join(unscored)}")
 
-        # Composite scores
+        # Validate only scorable stocks
+        self._validate_scores(scorable)
+
+        # Composite scores (only for fully-scored stocks)
         self._log("\nCalculating composite scores...")
-        composite_results = self._composite_calc.calculate_scores_for_universe(pillar_scores)
+        composite_results = self._composite_calc.calculate_scores_for_universe(scorable)
         self._log(f"  Calculated composite scores for {len(composite_results)} stocks")
 
         return pillar_scores, composite_results
@@ -620,6 +631,7 @@ class ScoringPipeline:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         scores_list = []
+        scored_tickers = set()
         for r in result.composite_results:
             pillars = result.pillar_scores.get(r.ticker, {})
             entry = {
@@ -638,10 +650,34 @@ class ScoringPipeline:
                 'data_status': pillars.get('data_status', {}),
             }
             scores_list.append(entry)
+            scored_tickers.add(r.ticker)
+
+        # Include unscored stocks (missing data) with null scores
+        for ticker, pillars in result.pillar_scores.items():
+            if ticker in scored_tickers:
+                continue
+            entry = {
+                'ticker': ticker,
+                'fundamental_score': pillars.get('fundamental'),
+                'technical_score': pillars.get('technical'),
+                'sentiment_score': pillars.get('sentiment'),
+                'composite_score': None,
+                'composite_percentile': None,
+                'recommendation': 'INSUFFICIENT DATA',
+                'sub_components': {
+                    'fundamental': pillars.get('fundamental_detail', {}),
+                    'technical': pillars.get('technical_detail', {}),
+                    'sentiment': pillars.get('sentiment_detail', {}),
+                },
+                'data_status': pillars.get('data_status', {}),
+            }
+            scores_list.append(entry)
 
         scores_data = {
             'generated_at': str(datetime.now()),
             'universe_size': len(result.composite_results),
+            'scored_count': len(result.composite_results),
+            'unscored_count': len(result.pillar_scores) - len(result.composite_results),
             'weights': result.weights,
             'scores': scores_list,
         }

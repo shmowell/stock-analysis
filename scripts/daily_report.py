@@ -286,8 +286,13 @@ def main():
     checker = StalenessChecker()
     with get_db_session() as session:
         staleness = checker.check_all(session)
+        incomplete = checker.tables_with_missing_stocks(session)
 
-    stale_tables = [s.table for s in staleness if s.stale]
+    stale_tables = list(set(
+        [s.table for s in staleness if s.stale] + incomplete
+    ))
+    if incomplete:
+        print(f"  Tables with missing stock data: {', '.join(incomplete)}")
 
     # Step 2: Refresh data if needed
     refresh_results = None

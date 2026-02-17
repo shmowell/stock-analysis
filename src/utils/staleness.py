@@ -25,7 +25,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database.models import (
-    PriceData, FundamentalData, TechnicalIndicator,
+    Stock, PriceData, FundamentalData, TechnicalIndicator,
     SentimentData, MarketSentiment, FMPEstimateSnapshot,
 )
 
@@ -179,6 +179,41 @@ class StalenessChecker:
     def get_stale_tables(self, session: Session) -> List[StalenessResult]:
         """Return only the tables that need refreshing."""
         return [r for r in self.check_all(session) if r.stale]
+
+    # Per-ticker tables: if an active stock has zero rows, that table needs refresh.
+    PER_TICKER_TABLES = {
+        'price_data': (PriceData, PriceData.ticker),
+        'fundamental_data': (FundamentalData, FundamentalData.ticker),
+        'technical_indicators': (TechnicalIndicator, TechnicalIndicator.ticker),
+        'sentiment_data': (SentimentData, SentimentData.ticker),
+        'fmp_estimate_snapshots': (FMPEstimateSnapshot, FMPEstimateSnapshot.ticker),
+    }
+
+    def tables_with_missing_stocks(self, session: Session) -> List[str]:
+        """Return table keys where at least one active stock has no rows.
+
+        This catches the case where a stock was added to the universe but
+        data collection hasn't run for it yet.  The normal staleness check
+        only looks at MAX(date) across the whole table and would miss this.
+        """
+        active_tickers = {
+            row[0] for row in
+            session.query(Stock.ticker).filter(Stock.is_active == True).all()
+        }
+        if not active_tickers:
+            return []
+
+        tables_needing_refresh = []
+        for table_key, (model_cls, ticker_col) in self.PER_TICKER_TABLES.items():
+            tickers_with_data = {
+                row[0] for row in
+                session.query(ticker_col).distinct().all()
+            }
+            missing = active_tickers - tickers_with_data
+            if missing:
+                tables_needing_refresh.append(table_key)
+
+        return tables_needing_refresh
 
     def format_report(self, results: List[StalenessResult]) -> str:
         """Format staleness results as a readable report."""

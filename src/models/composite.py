@@ -240,7 +240,7 @@ class CompositeScoreCalculator:
             Percentile rank (0-100)
         """
         if not universe:
-            return 50.0
+            return 50.0  # Neutral rank when no peers to compare against
 
         # Count how many values in universe are less than this value
         count_below = sum(1 for v in universe if v < value)

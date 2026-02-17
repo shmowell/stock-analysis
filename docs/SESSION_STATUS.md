@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-16 (Stale data refresh fix)
+**Last Updated:** 2026-02-16 (None propagation for missing data)
 **Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
-**Status:** Phases 1-5 complete. Web GUI live with score explainability and data status visibility. Stale data refresh button fixed for weekends.
+**Status:** Phases 1-5 complete. Web GUI live. Missing data now shows N/A instead of fake 50.0 scores. Recalculate auto-detects stocks needing data collection.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -64,17 +64,20 @@
 - ✅ Flask web app with dashboard, scores, universe, overrides, backtest, data status pages
 - ✅ Background task system for score calculation
 - ✅ Score explainability: sub-component breakdowns (fundamental: value/quality/growth, technical: 6 sub-scores, sentiment: market/stock + 4 sub-scores)
-- ✅ Data status visibility: `no_data` warnings for stocks missing DB data (AMD case)
+- ✅ Data status visibility: `no_data` warnings for stocks missing DB data
 - ✅ Sentiment calculator returns dict with sub-components
 - ✅ Pipeline preserves sub-component data through to JSON and DB persistence
-- ✅ 18 web route tests
+- ✅ 24 web route tests
 - ✅ Weekend-aware staleness checking for price_data and technical_indicators
 - ✅ Partial-success exit code in price collector (no longer fails on single ticker error)
 - ✅ Subprocess error logging in refresh task results
-- ⏳ AMD data collection issue (AMD is active but has no data rows — needs investigation)
+- ✅ None propagation for missing data (no more fake 50.0 scores)
+- ✅ Per-stock coverage detection in StalenessChecker (auto-triggers data collection for new stocks)
+- ✅ Unscored stocks shown as INSUFFICIENT DATA with N/A in GUI
+- ⏳ Auto-collect data when adding a stock (CLI + web UI)
 
 **Current Database:**
-- 16 active stocks across 7 sectors (AMD added but no data)
+- 16 active stocks across 7 sectors (AMD added but no data yet — will auto-collect on next Recalculate)
 - Price data: 7,545 records (2 years x 15 stocks)
 - Fundamental data: 15 records
 - Technical indicators: 15 records (all fields populated)
@@ -87,9 +90,13 @@
 
 ## Next Session Goals
 
-**Potential tasks:**
-1. Fix AMD data collection (run data scripts for AMD, or investigate why AMD is missing)
+**Priority:**
+1. Auto-collect data + score when adding a stock (both `manage_universe.py add` and web UI `/universe/add`)
+   - After inserting Stock row, run data collection scripts for that ticker
+   - Optionally trigger a scoring run afterward
 2. Expand stock universe (add more stocks for better percentile ranking)
+
+**Potential tasks:**
 3. Extend price data history (more backtest coverage)
 4. Full-model backtest (once snapshots accumulate over daily runs)
 5. Paper trading simulation with real-time tracking
@@ -143,11 +150,11 @@ python scripts/calculate_scores.py
 
 ### Current Environment
 - **Database:** PostgreSQL, stock_analysis
-  - 15 stocks, 7,545 price records, all indicator tables populated
+  - 16 stocks (15 with data, AMD pending), 7,545 price records
   - 130 FMP estimate snapshots (baseline for future revision detection)
 - **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min), FMP (250/day), DataHub.io (free)
 - **Python:** 3.12.9
-- **Tests:** pytest (468 passing: 332 core + 54 Phase 4 + 61 Phase 5 + 12 web + 1 explainability + 8 weekend staleness)
+- **Tests:** pytest (467 passing)
 
 ### Latest Scores (2026-02-14)
 | Rank | Ticker | Recommendation | Composite | Fund | Tech | Sent |
@@ -157,6 +164,7 @@ python scripts/calculate_scores.py
 | 3 | GOOGL | BUY | 62.5 | 49.0 | 85.5 | 52.7 |
 | 4 | NVDA | BUY | 62.4 | 62.3 | 66.8 | 55.0 |
 | 5 | XOM | HOLD | 55.4 | 48.5 | 68.5 | 48.2 |
+| -- | AMD | INSUFFICIENT DATA | N/A | N/A | N/A | N/A |
 
 ### Key Module Files
 - `src/web/` — Flask web GUI (dashboard, scores, universe, overrides, backtest, data status)
@@ -164,7 +172,7 @@ python scripts/calculate_scores.py
 - `src/backtesting/indicator_builder.py` — IndicatorBuilder (indicator math for any date)
 - `src/backtesting/technical_backtest.py` — TechnicalBacktester (quintile analysis, correlations)
 - `src/backtesting/snapshot_manager.py` — SnapshotManager (point-in-time snapshots)
-- `src/utils/staleness.py` — StalenessChecker (data freshness)
+- `src/utils/staleness.py` — StalenessChecker (data freshness + per-stock coverage)
 - `src/overrides/override_manager.py` — Core override logic + guardrails
 - `src/overrides/override_logger.py` — JSON persistence
 - `src/models/composite.py` — CompositeScoreCalculator
@@ -192,6 +200,11 @@ python scripts/calculate_scores.py
    - 15-stock universe too small for robust quintile analysis
    - Full-model backtest requires accumulated daily snapshots
 
+6. **Adding stocks doesn't auto-collect data**
+   - `manage_universe.py add` and web UI only insert Stock row
+   - Data collection requires separate Recalculate or daily_report.py run
+   - Next session: make add auto-trigger collection + scoring
+
 ---
 
 **Phase 1 Progress: 100% COMPLETE**
@@ -199,4 +212,4 @@ python scripts/calculate_scores.py
 **Phase 3 Progress: 100% COMPLETE**
 **Phase 4 Progress: 100% COMPLETE**
 **Phase 5 Progress: 100% COMPLETE**
-**Phase 6 Progress: Web GUI + Explainability COMPLETE, AMD data fix pending**
+**Phase 6 Progress: Web GUI + Explainability + None propagation COMPLETE, auto-collect on add pending**

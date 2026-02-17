@@ -4,6 +4,41 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16c: Fix Missing Data Scoring (None Propagation) ✅
+
+**Completed Tasks:**
+- Investigated why AMD shows 50.0 score with no data — `manage_universe.py add` only inserts into `stocks` table, doesn't trigger data collection
+- Eliminated all `50.0` default scores for missing data — propagate `None` instead
+- Pipeline now excludes stocks with any `None` pillar from composite ranking
+- JSON output includes unscored stocks with `null` scores and `"INSUFFICIENT DATA"` recommendation
+- Web GUI shows `N/A` for missing scores, `INSUFFICIENT DATA` badge, empty score bars
+- Detail view falls back to JSON data for stocks not in DB scores table
+- Added `tables_with_missing_stocks()` to `StalenessChecker` — detects active stocks with zero rows in per-ticker tables
+- Integrated per-stock coverage check into both GUI Recalculate and CLI daily_report.py refresh logic
+- Normal Recalculate now auto-detects AMD-like cases and triggers data collection (no force-refresh needed)
+
+**Root Cause (AMD):**
+`manage_universe.py add AMD` inserts a `Stock` row but prints "Run data collection scripts to populate data for new stocks." Data collection was never run after adding AMD. The scoring pipeline then silently assigned `50.0` to all three pillars — indistinguishable from a legitimately median-scored stock.
+
+**Files Modified:**
+- `src/scoring/pipeline.py` — Replace `50.0` defaults with `None`; filter `scorable` vs `unscored` stocks before composite calculation; `persist_to_json()` includes unscored stocks with null scores
+- `src/models/composite.py` — Added comment clarifying neutral rank for empty universe
+- `src/utils/staleness.py` — Added `PER_TICKER_TABLES` mapping and `tables_with_missing_stocks()` method; imported `Stock` model
+- `src/web/routes/scores.py` — Use `is not None` checks; build `unscored` list from JSON; detail view falls back to JSON for unscored stocks; refresh logic merges stale + incomplete tables
+- `src/web/templates/scores/list.html` — N/A for None scores; unscored stocks at bottom with `--` rank and INSUFFICIENT DATA badge
+- `src/web/templates/scores/detail.html` — N/A for None pillar scores; updated warning text (removed "defaulted to 50.0" language)
+- `scripts/daily_report.py` — Integrated `tables_with_missing_stocks()` into refresh logic
+
+**Technical Decisions:**
+1. **None over 50.0** — CLAUDE.md explicitly says "NEVER use arbitrary defaults like 0 or 50." Now `None` means "no data" and only real calculated scores appear in rankings.
+2. **Exclude from composite, keep in pillar_scores** — Stocks with any `None` pillar are excluded from `calculate_scores_for_universe()` but remain in `pillar_scores` dict for UI display.
+3. **Per-stock coverage in StalenessChecker** — Rather than a separate "force refresh" button (bad UX), the normal refresh logic now also checks if any active stock is missing rows in per-ticker tables. This makes Recalculate "just work" for newly added stocks.
+4. **JSON includes unscored stocks** — So the web UI can display them with proper N/A treatment without requiring a DB row.
+
+**Tests:** 467 passing (no regressions, pre-existing flaky override logger test unrelated)
+
+---
+
 ## Session 2026-02-16b: Fix Stale Data Refresh for Price Data ✅
 
 **Completed Tasks:**

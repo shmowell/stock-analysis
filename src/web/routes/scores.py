@@ -36,10 +36,10 @@ def score_list():
                     scores.append({
                         'ticker': s.ticker,
                         'recommendation': s.recommendation,
-                        'final_composite_score': float(s.final_composite_score) if s.final_composite_score else 0,
-                        'fundamental_score': float(s.fundamental_score) if s.fundamental_score else 0,
-                        'technical_score': float(s.technical_score) if s.technical_score else 0,
-                        'sentiment_score': float(s.sentiment_score) if s.sentiment_score else 0,
+                        'final_composite_score': float(s.final_composite_score) if s.final_composite_score is not None else None,
+                        'fundamental_score': float(s.fundamental_score) if s.fundamental_score is not None else None,
+                        'technical_score': float(s.technical_score) if s.technical_score is not None else None,
+                        'sentiment_score': float(s.sentiment_score) if s.sentiment_score is not None else None,
                     })
 
         # Load previous scores and data status from JSON
@@ -59,9 +59,24 @@ def score_list():
         if 'no_data' in ds.values():
             data_statuses[s['ticker']] = ds
 
+    # Add unscored stocks from JSON (those with INSUFFICIENT DATA)
+    scored_tickers = {s['ticker'] for s in scores}
+    unscored = []
+    for s in previous.values():
+        if s['ticker'] not in scored_tickers and s.get('recommendation') == 'INSUFFICIENT DATA':
+            unscored.append({
+                'ticker': s['ticker'],
+                'recommendation': 'INSUFFICIENT DATA',
+                'final_composite_score': None,
+                'fundamental_score': s.get('fundamental_score'),
+                'technical_score': s.get('technical_score'),
+                'sentiment_score': s.get('sentiment_score'),
+            })
+
     return render_template(
         'scores/list.html',
         scores=scores,
+        unscored=unscored,
         previous=previous,
         calc_date=calc_date,
         data_statuses=data_statuses,
@@ -100,10 +115,10 @@ def score_detail(ticker):
                 score = {
                     'ticker': score_row.ticker,
                     'recommendation': score_row.recommendation,
-                    'final_composite_score': float(score_row.final_composite_score) if score_row.final_composite_score else 0,
-                    'fundamental_score': float(score_row.fundamental_score) if score_row.fundamental_score else 0,
-                    'technical_score': float(score_row.technical_score) if score_row.technical_score else 0,
-                    'sentiment_score': float(score_row.sentiment_score) if score_row.sentiment_score else 0,
+                    'final_composite_score': float(score_row.final_composite_score) if score_row.final_composite_score is not None else None,
+                    'fundamental_score': float(score_row.fundamental_score) if score_row.fundamental_score is not None else None,
+                    'technical_score': float(score_row.technical_score) if score_row.technical_score is not None else None,
+                    'sentiment_score': float(score_row.sentiment_score) if score_row.sentiment_score is not None else None,
                     'calculation_date': score_row.calculation_date,
                 }
 
@@ -122,6 +137,18 @@ def score_detail(ticker):
     if not stock:
         flash(f'Ticker {ticker} not found', 'error')
         return redirect(url_for('scores.score_list'))
+
+    # If no DB score but JSON has this stock (unscored/insufficient data), build score from JSON
+    if not score and pillar_scores:
+        score = {
+            'ticker': ticker,
+            'recommendation': pillar_scores.get('recommendation', 'INSUFFICIENT DATA'),
+            'final_composite_score': pillar_scores.get('composite_score'),
+            'fundamental_score': pillar_scores.get('fundamental_score'),
+            'technical_score': pillar_scores.get('technical_score'),
+            'sentiment_score': pillar_scores.get('sentiment_score'),
+            'calculation_date': None,
+        }
 
     sub_components = pillar_scores.get('sub_components', {})
     data_status = pillar_scores.get('data_status', {})
@@ -170,7 +197,10 @@ def calculate():
                 checker = StalenessChecker()
                 with get_db_session() as session:
                     staleness = checker.check_all(session)
-                tables_to_refresh = [s.table for s in staleness if s.stale]
+                    stale = [s.table for s in staleness if s.stale]
+                    # Also refresh tables where active stocks have no data at all
+                    incomplete = checker.tables_with_missing_stocks(session)
+                tables_to_refresh = list(set(stale + incomplete))
 
             for table_key, script_path in REFRESH_SCRIPTS:
                 if table_key in tables_to_refresh:
