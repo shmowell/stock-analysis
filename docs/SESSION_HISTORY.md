@@ -4,6 +4,31 @@ This file contains detailed history of completed sessions. Only reference this w
 
 ---
 
+## Session 2026-02-16j: Expand stock universe to 51 stocks ✅
+
+**Completed Tasks:**
+- Expanded universe from 17 to 51 active stocks across 11 GICS sectors
+- Added 26 new stocks: AMZN, TSLA, HD, NKE, MCD (Consumer Cyclical), LIN, FCX (Basic Materials), AMT, PLD (Real Estate), NEE, DUK (Utilities), CVX, COP (Energy), META, NFLX (Communication Services), MA, GS, BAC (Financial Services), ABBV, PFE, LLY (Healthcare), HON, GE, UNP (Industrials), CRM, AVGO (Technology)
+- Filled 4 previously missing sectors: Consumer Cyclical, Basic Materials, Real Estate, Utilities
+- Ran full data collection (price, fundamental, technical, sentiment, market sentiment, FMP) for all stocks
+- Scored full universe — all 51 stocks have composite scores, no INSUFFICIENT DATA
+- 8 pre-existing Industrials stocks (CMI, DE, ETN, GEV, KMTUY, ROK, TEX, VRT) were already in DB and became active
+
+**Technical Decisions:**
+1. Used `--no-collect` for bulk add to avoid 26 redundant full-universe rescores; ran single `daily_report.py --force-refresh` afterward
+2. Substituted BAC for BRK-B (Berkshire ticker format incompatible with Yahoo Finance API)
+3. FMP estimate snapshots timed out during collection (rate limiting) — non-critical, will catch up on next daily run
+
+**Data Status Post-Expansion:**
+- 51 active stocks, 11 sectors
+- 25,588 price records
+- All stocks scored (composite range: 26.0 NKE to 69.8 FCX)
+- Top 7 STRONG BUY: FCX, AVGO, CAT, GOOGL, JNJ, VRT, AMD
+
+**Git Commit:** `pending` - "feat: Expand universe to 51 stocks across 11 sectors"
+
+---
+
 ## Session 2026-02-16i: Auto-collect data when adding stocks ✅
 
 **Completed Tasks:**

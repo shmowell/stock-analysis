@@ -1,8 +1,8 @@
 # Session Status - Current State
 
-**Last Updated:** 2026-02-16 (Auto-collect on add)
+**Last Updated:** 2026-02-16 (Universe expansion)
 **Current Phase:** Phase 6 — Web GUI & Refinement (IN PROGRESS)
-**Status:** Phases 1-5 complete. Web GUI live. Historical scores backfilled. Score-vs-performance analysis dashboard live. Auto-collect on stock add complete (CLI + web).
+**Status:** Phases 1-5 complete. Web GUI live. Historical scores backfilled. Score-vs-performance analysis dashboard live. Auto-collect on stock add complete (CLI + web). Universe expanded to 51 stocks across 11 sectors.
 
 > **Session History:** Detailed past session notes are in [SESSION_HISTORY.md](SESSION_HISTORY.md) (only load when needed)
 
@@ -85,27 +85,27 @@
 - ✅ `--ticker` flag on all 5 per-stock collection scripts (enables targeted collection)
 
 **Current Database:**
-- 16 active stocks across 7 sectors (AMD added but no data yet — will auto-collect on next Recalculate)
-- Price data: 7,545 records (2 years x 15 stocks)
-- Fundamental data: 15 records
-- Technical indicators: 15 records (all fields populated)
-- Sentiment data: 15 records (13 with FMP data, 2 Yahoo-only)
-- Market sentiment: 1 record (3/4 indicators)
-- FMP estimate snapshots: 130 records (baseline for revision tracking)
-- Stock scores: 15 dates × 17 stocks (12 monthly backfilled + 3 daily)
+- 51 active stocks across 11 sectors (all scored)
+- Price data: 25,588 records (2 years x 51 stocks)
+- Fundamental data: 82 records
+- Technical indicators: 51 records (all fields populated)
+- Sentiment data: 82 records
+- Market sentiment: 3 records (3/4 indicators)
+- FMP estimate snapshots: 400 records
+- Stock scores: 51 stocks scored (composite range: 26.0–69.8)
 
 ---
 
 ## Next Session Goals
 
 **Priority:**
-1. Expand stock universe (more stocks for better percentile ranking — currently 16 too small for robust quintile analysis)
-2. Extend price data history (more backtest coverage)
+1. Extend price data history (more backtest coverage)
+2. Generate historical scores for expanded universe (backfill monthly snapshots for new stocks)
 
 **Backlog:**
 3. Override alpha calculation (track override performance vs base model)
 4. Metric-level data availability (show "3/5 metrics" alongside each sub-component score)
-5. Full-model composite backtest (currently only technical varies historically — as more snapshots accumulate, performance analysis will become more meaningful)
+5. Full-model composite backtest (now feasible with 51-stock universe — requires accumulated snapshots)
 
 ### Deferred Items
 - AAII Sentiment (requires premium API)
@@ -160,21 +160,22 @@ python scripts/calculate_scores.py
 
 ### Current Environment
 - **Database:** PostgreSQL, stock_analysis
-  - 16 stocks (15 with data, AMD pending), 7,545 price records
-  - 130 FMP estimate snapshots (baseline for future revision detection)
+  - 51 active stocks across 11 sectors, 25,588 price records
+  - 400 FMP estimate snapshots
 - **APIs:** Yahoo Finance (unlimited), Alpha Vantage (5/min), FMP (250/day), DataHub.io (free)
 - **Python:** 3.12.9
 - **Tests:** pytest (542+ passing)
 
-### Latest Scores (2026-02-14)
+### Latest Scores (2026-02-16)
 | Rank | Ticker | Recommendation | Composite | Fund | Tech | Sent |
 |------|--------|---------------|-----------|------|------|------|
-| 1 | JNJ | STRONG BUY | 64.0 | 53.5 | 86.5 | 48.2 |
-| 2 | CAT | STRONG BUY | 62.8 | 47.4 | 92.3 | 46.0 |
-| 3 | GOOGL | BUY | 62.5 | 49.0 | 85.5 | 52.7 |
-| 4 | NVDA | BUY | 62.4 | 62.3 | 66.8 | 55.0 |
-| 5 | XOM | HOLD | 55.4 | 48.5 | 68.5 | 48.2 |
-| -- | AMD | INSUFFICIENT DATA | N/A | N/A | N/A | N/A |
+| 1 | FCX | STRONG BUY | 69.8 | 61.7 | 92.3 | 48.6 |
+| 2 | AVGO | STRONG BUY | 68.1 | 65.4 | 78.9 | 55.3 |
+| 3 | CAT | STRONG BUY | 67.4 | 53.6 | 97.1 | 46.3 |
+| 4 | GOOGL | STRONG BUY | 67.0 | 56.8 | 88.2 | 53.1 |
+| 5 | JNJ | STRONG BUY | 66.0 | 58.8 | 85.2 | 48.6 |
+| 6 | VRT | STRONG BUY | 65.3 | 50.8 | 92.1 | 50.8 |
+| 7 | AMD | STRONG BUY | 65.2 | 52.6 | 86.9 | 55.3 |
 
 ### Key Module Files
 - `scripts/generate_historical_scores.py` — Backfill monthly composite scores from historical price data
@@ -210,7 +211,7 @@ python scripts/calculate_scores.py
 
 5. **Backtest limited by data history**
    - Only 2 years of price data → ~12 months of testable checkpoints
-   - 15-stock universe too small for robust quintile analysis
+   - 51-stock universe now sufficient for quintile analysis (10 per quintile)
    - Full-model backtest requires accumulated daily snapshots
 
 ---
@@ -220,4 +221,4 @@ python scripts/calculate_scores.py
 **Phase 3 Progress: 100% COMPLETE**
 **Phase 4 Progress: 100% COMPLETE**
 **Phase 5 Progress: 100% COMPLETE**
-**Phase 6 Progress: Web GUI + Explainability + None propagation + Price/Trend charts + Historical scores + Performance analysis + Auto-collect on add COMPLETE**
+**Phase 6 Progress: Web GUI + Explainability + None propagation + Price/Trend charts + Historical scores + Performance analysis + Auto-collect on add + Universe expansion (51 stocks, 11 sectors) COMPLETE**
